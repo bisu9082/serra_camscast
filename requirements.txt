@@ -1,0 +1,9 @@
+# Ranges wide enough not to disturb an existing environment. The analysis was
+# developed and run on the versions recorded in requirements-frozen.txt, and the
+# smoke test has been run on pandas 2.3 and 3.0; nothing here depends on a
+# behaviour that differs between them.
+numpy>=1.26,<3
+pandas>=2.1,<4
+scipy>=1.11,<2
+scikit-learn>=1.4,<2
+matplotlib>=3.8,<4

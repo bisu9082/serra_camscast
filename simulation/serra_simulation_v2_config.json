@@ -1,0 +1,46 @@
+{
+  "version": "v2",
+  "target_journal": "Stochastic Environmental Research and Risk Assessment",
+  "scenario_labels": [
+    "absent",
+    "present"
+  ],
+  "n_scenarios": 32,
+  "primary_replicates": 100,
+  "confirmatory_replicates_if_stable": 200,
+  "beta": {
+    "absent": 0.0,
+    "present": 1.0
+  },
+  "station_geometry": {
+    "n_stations": 19,
+    "dense_median_nearest_neighbor_km": 6.5499,
+    "sparse_scale": 2.0,
+    "sparse_median_nearest_neighbor_km": 13.0997
+  },
+  "grid": {
+    "rule": "round(lat/0.75), round(lon/0.75)",
+    "n_cells": 9,
+    "same_cell_predictor_identity": true,
+    "cell_membership_held_constant_across_geometry": true
+  },
+  "validation_designs": [
+    "station",
+    "space",
+    "space_time",
+    "full"
+  ],
+  "primary_radius_km": 50,
+  "sensitivity_radius_km": [
+    25,
+    100
+  ],
+  "guard": {
+    "rule": "first source-network median |ACF| <= 0.10",
+    "max_days": 14,
+    "target_outcome_used": false
+  },
+  "estimand": "Delta = log(MAE_raw / MAE_corrected)",
+  "positive_verdict": "median Delta > 0 AND one-sided exact sign-test p < 0.05",
+  "primary_learner": "RBF-basis ridge regression"
+}

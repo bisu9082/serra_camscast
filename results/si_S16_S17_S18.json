@@ -1,0 +1,125 @@
+{
+ "S16": {
+  "n_episodes": 12,
+  "rows": [
+   {
+    "model": "raw_cams",
+    "MAE": 43.0,
+    "lo": 38.1,
+    "hi": 47.7
+   },
+   {
+    "model": "biascorr",
+    "MAE": 30.3,
+    "lo": 23.7,
+    "hi": 37.5
+   },
+   {
+    "model": "persistence",
+    "MAE": 13.0,
+    "lo": 8.2,
+    "hi": 18.0
+   },
+   {
+    "model": "snaive",
+    "MAE": 22.0,
+    "lo": 12.9,
+    "hi": 30.1
+   },
+   {
+    "model": "fm_bolt",
+    "MAE": 14.7,
+    "lo": 9.7,
+    "hi": 18.9
+   },
+   {
+    "model": "fm_c2",
+    "MAE": 13.3,
+    "lo": 8.7,
+    "hi": 17.8
+   }
+  ],
+  "gap": 29.8,
+  "gap_ci": [
+   28.7,
+   31.5
+  ],
+  "per_episode_wins": 12,
+  "n_ep_compared": 12
+ },
+ "S17": {
+  "cells": [
+   {
+    "cell": "24.00N/54.75E",
+    "n": 3,
+    "mean_obs": 131.5,
+    "rng": 85.8,
+    "sd": 43.0
+   },
+   {
+    "cell": "24.00N/54.00E",
+    "n": 3,
+    "mean_obs": 82.0,
+    "rng": 68.9,
+    "sd": 37.5
+   },
+   {
+    "cell": "24.00N/52.50E",
+    "n": 2,
+    "mean_obs": 70.9,
+    "rng": 16.4,
+    "sd": 11.6
+   },
+   {
+    "cell": "24.00N/55.50E",
+    "n": 4,
+    "mean_obs": 79.3,
+    "rng": 11.5,
+    "sd": 5.3
+   },
+   {
+    "cell": "24.75N/54.00E",
+    "n": 2,
+    "mean_obs": 99.5,
+    "rng": 6.9,
+    "sd": 4.8
+   },
+   {
+    "cell": "24.75N/54.75E",
+    "n": 2,
+    "mean_obs": 105.8,
+    "rng": 6.2,
+    "sd": 4.4
+   }
+  ],
+  "median_range": 13.9,
+  "max_range": 85.8,
+  "n_cells": 6,
+  "n_stations_in_multi": 16
+ },
+ "S18": {
+  "low": {
+   "n": 9,
+   "mean_abs_bias": 6.1,
+   "raw": 26.7,
+   "fm": 8.6,
+   "pers": 8.5,
+   "reduction": 68.0
+  },
+  "high": {
+   "n": 10,
+   "mean_abs_bias": 58.5,
+   "raw": 57.2,
+   "fm": 17.3,
+   "pers": 16.8,
+   "reduction": 70.0
+  },
+  "all": {
+   "n": 19,
+   "raw": 43.0,
+   "fm": 13.3,
+   "pers": 13.0,
+   "reduction": 69.0
+  }
+ }
+}

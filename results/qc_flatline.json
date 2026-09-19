@@ -1,0 +1,564 @@
+{
+ "n_obs": 20818,
+ "integer_valued_fraction": 1.0,
+ "median_concentration": 74.5,
+ "fraction_above_100": 0.28542607359016237,
+ "median_abs_step": 3.0,
+ "fraction_tied_with_previous": 0.15500745228135968,
+ "longest_run": 51,
+ "by_run_length": [
+  {
+   "run_length": "2",
+   "n_runs": 1736,
+   "median_value": 65.0,
+   "fraction_above_100": 0.20046082949308755
+  },
+  {
+   "run_length": "3",
+   "n_runs": 398,
+   "median_value": 59.0,
+   "fraction_above_100": 0.09296482412060302
+  },
+  {
+   "run_length": "4-5",
+   "n_runs": 145,
+   "median_value": 61.0,
+   "fraction_above_100": 0.10344827586206896
+  },
+  {
+   "run_length": "6-10",
+   "n_runs": 26,
+   "median_value": 51.5,
+   "fraction_above_100": 0.15384615384615385
+  },
+  {
+   "run_length": "11+",
+   "n_runs": 2,
+   "median_value": 51.0,
+   "fraction_above_100": 0.0
+  }
+ ],
+ "interpretation": "Runs of two to ten steps sit below the network median concentration and are depleted in values above 100 ug/m3 relative to the record as a whole, which is the signature of integer reporting rather than of a latched sensor. The two longest runs (51 and 22 steps) show no such depletion in duration and are treated as instrument faults.",
+ "long_runs": [
+  {
+   "sid": "369963",
+   "length": 51,
+   "hours": 153,
+   "value": 80.0,
+   "start": "2023-11-24 03:00:00"
+  },
+  {
+   "sid": "369973",
+   "length": 22,
+   "hours": 66,
+   "value": 22.0,
+   "start": "2022-11-24 09:00:00"
+  },
+  {
+   "sid": "369954",
+   "length": 9,
+   "hours": 27,
+   "value": 134.0,
+   "start": "2023-10-29 18:00:00"
+  },
+  {
+   "sid": "369955",
+   "length": 8,
+   "hours": 24,
+   "value": 27.0,
+   "start": "2023-11-12 18:00:00"
+  },
+  {
+   "sid": "369957",
+   "length": 8,
+   "hours": 24,
+   "value": 86.0,
+   "start": "2022-12-18 09:00:00"
+  },
+  {
+   "sid": "369960",
+   "length": 7,
+   "hours": 21,
+   "value": 39.0,
+   "start": "2023-12-07 06:00:00"
+  },
+  {
+   "sid": "369965",
+   "length": 7,
+   "hours": 21,
+   "value": 61.0,
+   "start": "2023-12-18 12:00:00"
+  },
+  {
+   "sid": "369963",
+   "length": 7,
+   "hours": 21,
+   "value": 68.0,
+   "start": "2022-12-30 06:00:00"
+  },
+  {
+   "sid": "369967",
+   "length": 7,
+   "hours": 21,
+   "value": 27.0,
+   "start": "2023-12-19 18:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 7,
+   "hours": 21,
+   "value": 64.0,
+   "start": "2022-12-05 06:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 7,
+   "hours": 21,
+   "value": 47.0,
+   "start": "2023-12-21 12:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 7,
+   "hours": 21,
+   "value": 42.0,
+   "start": "2023-10-29 09:00:00"
+  },
+  {
+   "sid": "369954",
+   "length": 6,
+   "hours": 18,
+   "value": 130.0,
+   "start": "2023-11-07 15:00:00"
+  },
+  {
+   "sid": "369954",
+   "length": 6,
+   "hours": 18,
+   "value": 131.0,
+   "start": "2023-11-06 21:00:00"
+  },
+  {
+   "sid": "369954",
+   "length": 6,
+   "hours": 18,
+   "value": 142.0,
+   "start": "2023-11-01 09:00:00"
+  },
+  {
+   "sid": "369954",
+   "length": 6,
+   "hours": 18,
+   "value": 25.0,
+   "start": "2022-12-09 15:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 6,
+   "hours": 18,
+   "value": 46.0,
+   "start": "2023-12-02 03:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 6,
+   "hours": 18,
+   "value": 50.0,
+   "start": "2023-12-10 00:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 6,
+   "hours": 18,
+   "value": 42.0,
+   "start": "2023-10-30 21:00:00"
+  },
+  {
+   "sid": "369953",
+   "length": 6,
+   "hours": 18,
+   "value": 22.0,
+   "start": "2023-11-26 00:00:00"
+  },
+  {
+   "sid": "369961",
+   "length": 6,
+   "hours": 18,
+   "value": 66.0,
+   "start": "2023-12-12 09:00:00"
+  },
+  {
+   "sid": "369959",
+   "length": 6,
+   "hours": 18,
+   "value": 62.0,
+   "start": "2023-12-19 03:00:00"
+  },
+  {
+   "sid": "369955",
+   "length": 6,
+   "hours": 18,
+   "value": 37.0,
+   "start": "2023-11-10 18:00:00"
+  },
+  {
+   "sid": "369955",
+   "length": 6,
+   "hours": 18,
+   "value": 81.0,
+   "start": "2023-12-17 21:00:00"
+  },
+  {
+   "sid": "369954",
+   "length": 6,
+   "hours": 18,
+   "value": 92.0,
+   "start": "2023-12-22 03:00:00"
+  },
+  {
+   "sid": "369962",
+   "length": 6,
+   "hours": 18,
+   "value": 38.0,
+   "start": "2023-12-30 21:00:00"
+  },
+  {
+   "sid": "369962",
+   "length": 6,
+   "hours": 18,
+   "value": 45.0,
+   "start": "2022-12-13 09:00:00"
+  },
+  {
+   "sid": "369965",
+   "length": 6,
+   "hours": 18,
+   "value": 53.0,
+   "start": "2023-12-30 18:00:00"
+  }
+ ],
+ "thresholds": {
+  "3": {
+   "rule": "remove every observation in a run of 3 or more identical consecutive values",
+   "removed": 2059,
+   "kept": 18759,
+   "removed_fraction": 0.09890479392833125,
+   "stations_affected": 19,
+   "min_station_n": 838,
+   "per_station": {
+    "369953": {
+     "before": 1073,
+     "removed": 235,
+     "after": 838
+    },
+    "369954": {
+     "before": 1127,
+     "removed": 152,
+     "after": 975
+    },
+    "369955": {
+     "before": 1083,
+     "removed": 152,
+     "after": 931
+    },
+    "369957": {
+     "before": 1081,
+     "removed": 100,
+     "after": 981
+    },
+    "369958": {
+     "before": 1080,
+     "removed": 18,
+     "after": 1062
+    },
+    "369959": {
+     "before": 1068,
+     "removed": 75,
+     "after": 993
+    },
+    "369960": {
+     "before": 1099,
+     "removed": 126,
+     "after": 973
+    },
+    "369961": {
+     "before": 1079,
+     "removed": 121,
+     "after": 958
+    },
+    "369962": {
+     "before": 1144,
+     "removed": 118,
+     "after": 1026
+    },
+    "369963": {
+     "before": 1083,
+     "removed": 146,
+     "after": 937
+    },
+    "369965": {
+     "before": 1134,
+     "removed": 209,
+     "after": 925
+    },
+    "369966": {
+     "before": 1108,
+     "removed": 68,
+     "after": 1040
+    },
+    "369967": {
+     "before": 1076,
+     "removed": 141,
+     "after": 935
+    },
+    "369968": {
+     "before": 1108,
+     "removed": 73,
+     "after": 1035
+    },
+    "369969": {
+     "before": 1134,
+     "removed": 89,
+     "after": 1045
+    },
+    "369971": {
+     "before": 1094,
+     "removed": 56,
+     "after": 1038
+    },
+    "369972": {
+     "before": 1096,
+     "removed": 76,
+     "after": 1020
+    },
+    "369973": {
+     "before": 1067,
+     "removed": 73,
+     "after": 994
+    },
+    "369974": {
+     "before": 1084,
+     "removed": 31,
+     "after": 1053
+    }
+   },
+   "primary": false,
+   "outdir": "aligned_qc3"
+  },
+  "4": {
+   "rule": "remove every observation in a run of 4 or more identical consecutive values",
+   "removed": 865,
+   "kept": 19953,
+   "removed_fraction": 0.04155058122778365,
+   "stations_affected": 18,
+   "min_station_n": 979,
+   "per_station": {
+    "369953": {
+     "before": 1073,
+     "removed": 94,
+     "after": 979
+    },
+    "369954": {
+     "before": 1127,
+     "removed": 95,
+     "after": 1032
+    },
+    "369955": {
+     "before": 1083,
+     "removed": 53,
+     "after": 1030
+    },
+    "369957": {
+     "before": 1081,
+     "removed": 46,
+     "after": 1035
+    },
+    "369958": {
+     "before": 1080,
+     "removed": 0,
+     "after": 1080
+    },
+    "369959": {
+     "before": 1068,
+     "removed": 24,
+     "after": 1044
+    },
+    "369960": {
+     "before": 1099,
+     "removed": 57,
+     "after": 1042
+    },
+    "369961": {
+     "before": 1079,
+     "removed": 40,
+     "after": 1039
+    },
+    "369962": {
+     "before": 1144,
+     "removed": 52,
+     "after": 1092
+    },
+    "369963": {
+     "before": 1083,
+     "removed": 83,
+     "after": 1000
+    },
+    "369965": {
+     "before": 1134,
+     "removed": 98,
+     "after": 1036
+    },
+    "369966": {
+     "before": 1108,
+     "removed": 20,
+     "after": 1088
+    },
+    "369967": {
+     "before": 1076,
+     "removed": 51,
+     "after": 1025
+    },
+    "369968": {
+     "before": 1108,
+     "removed": 31,
+     "after": 1077
+    },
+    "369969": {
+     "before": 1134,
+     "removed": 26,
+     "after": 1108
+    },
+    "369971": {
+     "before": 1094,
+     "removed": 20,
+     "after": 1074
+    },
+    "369972": {
+     "before": 1096,
+     "removed": 25,
+     "after": 1071
+    },
+    "369973": {
+     "before": 1067,
+     "removed": 40,
+     "after": 1027
+    },
+    "369974": {
+     "before": 1084,
+     "removed": 10,
+     "after": 1074
+    }
+   },
+   "primary": false,
+   "outdir": "aligned_qc4"
+  },
+  "6": {
+   "rule": "remove every observation in a run of 6 or more identical consecutive values",
+   "removed": 243,
+   "kept": 20575,
+   "removed_fraction": 0.011672591026995869,
+   "stations_affected": 12,
+   "min_station_n": 1025,
+   "per_station": {
+    "369953": {
+     "before": 1073,
+     "removed": 45,
+     "after": 1028
+    },
+    "369954": {
+     "before": 1127,
+     "removed": 39,
+     "after": 1088
+    },
+    "369955": {
+     "before": 1083,
+     "removed": 20,
+     "after": 1063
+    },
+    "369957": {
+     "before": 1081,
+     "removed": 8,
+     "after": 1073
+    },
+    "369958": {
+     "before": 1080,
+     "removed": 0,
+     "after": 1080
+    },
+    "369959": {
+     "before": 1068,
+     "removed": 6,
+     "after": 1062
+    },
+    "369960": {
+     "before": 1099,
+     "removed": 7,
+     "after": 1092
+    },
+    "369961": {
+     "before": 1079,
+     "removed": 6,
+     "after": 1073
+    },
+    "369962": {
+     "before": 1144,
+     "removed": 12,
+     "after": 1132
+    },
+    "369963": {
+     "before": 1083,
+     "removed": 58,
+     "after": 1025
+    },
+    "369965": {
+     "before": 1134,
+     "removed": 13,
+     "after": 1121
+    },
+    "369966": {
+     "before": 1108,
+     "removed": 0,
+     "after": 1108
+    },
+    "369967": {
+     "before": 1076,
+     "removed": 7,
+     "after": 1069
+    },
+    "369968": {
+     "before": 1108,
+     "removed": 0,
+     "after": 1108
+    },
+    "369969": {
+     "before": 1134,
+     "removed": 0,
+     "after": 1134
+    },
+    "369971": {
+     "before": 1094,
+     "removed": 0,
+     "after": 1094
+    },
+    "369972": {
+     "before": 1096,
+     "removed": 0,
+     "after": 1096
+    },
+    "369973": {
+     "before": 1067,
+     "removed": 22,
+     "after": 1045
+    },
+    "369974": {
+     "before": 1084,
+     "removed": 0,
+     "after": 1084
+    }
+   },
+   "primary": true,
+   "outdir": "aligned_qc6"
+  }
+ },
+ "primary_threshold": 6
+}

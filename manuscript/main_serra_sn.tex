@@ -1,0 +1,143 @@
+%% ============================================================
+%% Stochastic Environmental Research and Risk Assessment (SERRA)
+%% Springer Nature LaTeX template, sn-jnl.cls
+%% Option sn-basic  -> Basic Springer Nature reference style, author-year
+%% (no "Numbered" option, so natbib runs in authoryear mode)
+%% Compile:  pdflatex -> bibtex -> pdflatex -> pdflatex
+%% ============================================================
+
+\documentclass[sn-basic,lineno]{sn-jnl}
+
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage[title]{appendix}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{manyfoot}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{subcaption}
+\usepackage[per-mode=symbol]{siunitx}
+
+\newcommand*{\ugm}{\ensuremath{\mu\mathrm{g\,m^{-3}}}}
+\newcommand*{\pmtf}{\ensuremath{\mathrm{PM_{2.5}}}}
+\newcommand*{\pmten}{\ensuremath{\mathrm{PM_{10}}}}
+\newcommand*{\DeltaT}{\ensuremath{\Delta}}
+\newcommand*{\deposit}[1]{\textcolor{red}{\textbf{[BLOCKER --- resolve before submission:} #1\textbf{]}}}
+
+\raggedbottom
+
+\begin{document}
+
+%%==============================================================
+%% Title block
+%%==============================================================
+\title[A data-adaptive audit of spatial transfer]{A data-adaptive audit of spatial
+transfer in environmental residual-correction models}
+
+%%==============================================================
+%% Authors
+%%==============================================================
+\author[1]{\fnm{Jin} \sur{Yoo}}\equalcont{These authors contributed equally to this work.}
+
+\author[1]{\fnm{Doo-Hee} \sur{Lee}}\equalcont{These authors contributed equally to this work.}
+
+\author[2]{\fnm{Jeongyun} \sur{Kim}}
+
+\author[3]{\fnm{Janghyeon} \sur{Cha}}
+
+\author*[1]{\fnm{Ku} \sur{Kang}}\email{bisu9082@gmail.com}
+
+\affil[1]{\orgdiv{CBRN Defense Research Institute}, \orgname{Korea Ministry of National
+Defense}, \orgaddress{\city{Seoul}, \postcode{06796}, \country{Republic of Korea}}}
+
+\affil[2]{\orgdiv{Department of Chemical and Biological Engineering}, \orgname{Seoul National
+University}, \orgaddress{\city{Seoul}, \postcode{08826}, \country{Republic of Korea}}}
+
+\affil[3]{\orgname{Korean National Police Agency}, \orgaddress{\city{Seoul},
+\country{Republic of Korea}}}
+
+%%==============================================================
+%% Abstract
+%%==============================================================
+\abstract{Residual-correction models are increasingly used to post-process gridded environmental simulations at unmonitored locations, but withholding a target station does not by itself establish spatial transfer. Information may remain connected to the target through nearby stations, temporally co-located residuals, shared model-grid support, spatial proxies, and data-selection rules. We develop a data-adaptive audit that progressively controls these pathways and demonstrate it using CAMS \pmten{} residual correction across 19 monitoring stations. A three-day temporal guard left residual autocorrelation at $+0.19$, whereas a ten-day guard reduced it to $+0.08$; using the measured ten-day scale removed the previously reported transfer gain at every buffer radius while reducing training data by $11.6\%$. Equal-count temporal blocks also corrected severe fold imbalance, and an aggressive flat-line filter preferentially removed low-concentration observations and restored an apparent gain. We then evaluated the audit under known ground truth in a 32-scenario stochastic experiment. Across 25-, 50-, and 100-km buffers, the full audit held false-positive transfer verdicts near $2$--$3\%$ on average, though one dependence corner reached $11$--$13\%$, and it also reduced detection of genuine transferable signal. Coordinate-free models retained approximately $35$--$37\%$ detection across radii, whereas coordinate-bearing models declined to $22.5$--$27.8\%$. Spatial-transfer validation should therefore diagnose plausible dependence pathways and report the resulting specificity--power trade-off rather than treat the strictest holdout design as a universal gold standard.}
+
+\keywords{Spatial transfer, Residual correction, Spatiotemporal dependence, Cross-validation,
+Environmental model evaluation, Bias correction}
+
+\maketitle
+
+\input{body}
+
+%%==============================================================
+%% Back matter --- Springer Nature Declarations
+%%==============================================================
+\backmatter
+
+\bmhead{Acknowledgements}
+We thank the OpenAQ initiative and the Copernicus Atmosphere Monitoring Service for open access
+to the data used in this study.
+
+\section*{Statements and Declarations}
+
+\bmhead{Funding}
+This work was supported by the Ministry of National Defense of the Republic of Korea. The funder
+had no role in study design, data collection and analysis, decision to publish, or preparation
+of the manuscript.
+
+\bmhead{Conflict of interest}
+The authors declare that they have no known competing financial interests or personal
+relationships that could have appeared to influence the work reported in this paper.
+
+\bmhead{Ethics approval and consent to participate}
+Not applicable. This study uses only publicly archived environmental measurements and
+atmospheric model output; no human participants or animals are involved.
+
+\bmhead{Consent for publication}
+All authors have read and approved the submitted manuscript and consent to its publication.
+
+\bmhead{Data availability}
+The aligned three-hourly observation--model records underlying every empirical value reported
+here are available in the public \texttt{serra\_camscast} repository,
+\url{https://github.com/bisu9082/serra_camscast}. The raw CAMS EAC4 fields are distributed by
+the Copernicus Atmosphere Data Store and are not redistributed. The repository does not ship a
+retrieval client; the exact request parameters needed to rebuild the aligned records from that
+archive --- dataset, variables, grid, time grid, unit conversion and the station-matching rule ---
+are documented in \texttt{data\_retrieval/RETRIEVAL.md}. Ground observations are from the OpenAQ open-data archive.
+
+\bmhead{Materials availability}
+Not applicable.
+
+\bmhead{Code availability}
+The analysis code for the empirical audit is in the same repository under the MIT licence,
+together with the figure scripts and the result artefacts.
+\deposit{the stochastic-simulation code (\texttt{serra\_simulation\_v2.py}), its structural
+tests, its pre-declared configuration and the 25/50/100~km Monte Carlo outputs exist and have
+been validated, but are not yet publicly deposited. Deposit them, record the archival identifier
+and the release tag here, and delete this marker. Do not submit with this sentence unresolved.}
+
+\bmhead{Author contribution}
+\textbf{Jin Yoo:} Conceptualization, Methodology, Software, Formal analysis, Writing --- original
+draft. \textbf{Doo-Hee Lee:} Methodology, Software, Formal analysis, Validation, Writing ---
+original draft. \textbf{Jeongyun Kim:} Data curation, Investigation, Writing --- review and
+editing. \textbf{Janghyeon Cha:} Investigation, Validation, Writing --- review and editing.
+\textbf{Ku Kang:} Conceptualization, Funding acquisition, Supervision, Writing --- review and
+editing. Jin Yoo and Doo-Hee Lee contributed equally to this work.
+
+\bmhead{Use of generative AI and AI-assisted technologies}
+During the preparation of this work the authors used Claude (Anthropic) to assist with drafting
+and language editing of the manuscript text and with writing and debugging the analysis,
+simulation and figure-generation code. All measurements and model fields were obtained from the
+cited public archives; no data, numerical results or references were generated by AI. After
+using this tool the authors reviewed and edited the content as needed, verified every reported
+numerical value against the underlying artefacts, and take full responsibility for the content
+of the published article.
+
+\bibliography{refs_serra}
+
+\end{document}

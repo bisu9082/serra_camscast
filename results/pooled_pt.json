@@ -1,0 +1,34 @@
+{
+ "full_R0": {
+  "pooled_pt": 12.04,
+  "pooled_st": 12.35
+ },
+ "full_R25": {
+  "pooled_pt": 3.46,
+  "pooled_st": 3.69
+ },
+ "full_R50": {
+  "pooled_pt": -9.99,
+  "pooled_st": -9.48
+ },
+ "full_R100": {
+  "pooled_pt": -39.31,
+  "pooled_st": -38.5
+ },
+ "coordfree_R0": {
+  "pooled_pt": 22.35,
+  "pooled_st": 22.3
+ },
+ "coordfree_R25": {
+  "pooled_pt": 15.08,
+  "pooled_st": 15.01
+ },
+ "coordfree_R50": {
+  "pooled_pt": 11.74,
+  "pooled_st": 11.75
+ },
+ "coordfree_R100": {
+  "pooled_pt": 9.28,
+  "pooled_st": 9.32
+ }
+}

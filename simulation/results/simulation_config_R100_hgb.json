@@ -1,0 +1,44 @@
+{
+  "version": "v2",
+  "n_rep": 25,
+  "base_seed": 20260910,
+  "radius_km": 100.0,
+  "beta_signal": 1.0,
+  "n_days": 120,
+  "test_len_days": 20,
+  "test_margin_days": 20,
+  "ridge_alpha": 2.0,
+  "learner": "hgb",
+  "designs": "full",
+  "sigma_noise": 0.75,
+  "guard_rule": "first source-network median per-station |ACF| <= 0.10; max 14 d",
+  "grid_assignment": "observed audit_v7 rule: round(lat/0.75), round(lon/0.75); 9 cells",
+  "spatial_range_km": 70.0,
+  "temporal_strong_theoretical_acf": {
+    "1_day": 0.35,
+    "3_days": 0.19,
+    "10_days": 0.08
+  },
+  "primary_designs": [
+    "station",
+    "space",
+    "space_time",
+    "full"
+  ],
+  "feature_specs": [
+    "coordfree",
+    "full"
+  ],
+  "primary_radius_sensitivity": [
+    25,
+    50,
+    100
+  ],
+  "note": "Primary run uses R=50 km. Repeat --radius-km 25 and 100 as pre-declared sensitivity runs, not as separate hypothesis fishing.",
+  "structural_invariants": [
+    "19 observed station coordinates",
+    "9 observed CAMS 0.75-degree cells",
+    "same-cell stations share an exactly identical mechanistic predictor series",
+    "dense and sparse geometries retain the same cell membership to isolate geometry"
+  ]
+}

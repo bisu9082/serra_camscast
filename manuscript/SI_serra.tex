@@ -1,0 +1,1288 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amssymb,amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{url}
+\usepackage[per-mode=symbol]{siunitx}
+\usepackage{multirow}
+
+\newcommand*{\ugm}{\ensuremath{\mu\mathrm{g\,m^{-3}}}}
+\newcommand*{\pmtf}{\ensuremath{\mathrm{PM_{2.5}}}}
+\newcommand*{\pmten}{\ensuremath{\mathrm{PM_{10}}}}
+
+% Supplementary numbering: S-prefixed sections, tables, figures
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\begin{document}
+
+\begin{center}
+{\large\bfseries Supplementary Material}\\[6pt]
+{\itshape A data-adaptive audit of spatial transfer in environmental
+residual-correction models}\\[4pt]
+Jin Yoo, Doo-Hee Lee, Jeongyun Kim, Janghyeon Cha, Ku Kang\\
+\end{center}
+\vspace{1em}
+
+\section*{How this Supplement is organised}
+
+The main article makes one argument: a residual-correction gain is not a spatial-transfer gain until
+the dependence pathways connecting the held-out target to its training set have been blocked, and the
+cost of blocking them has been measured. This Supplement carries the evidence in three parts.
+
+\begin{itemize}\itemsep2pt
+\item \textbf{Sections~S1--S3} document the data, the CAMS extraction, and the estimation and
+      inference protocol.
+\item \textbf{The empirical audit} is carried by Sections~S9, S13--S15, S17 and S18, with
+      Tables~S6, S7, S10 and S20--S26 and S28--S34: the buffer ladder with the guard band as its
+      contrast, the block-construction and quality-control variants, the coordinate ablation and the
+      paired comparison, the coordinate-permutation placebo, the grid-origin sensitivity, the
+      nearest-neighbour and area-of-applicability analysis, the source-set stability check and the
+      learner sensitivity.
+\item \textbf{The forecasting benchmark} is carried by Sections~S4--S8 and S10--S12, with
+      Tables~S1--S5, S8, S9, S11--S19 and S27 and Figures~S1 and S2. That arm established why a cold
+      start is the case worth auditing at all, but it is not a co-equal contribution of this article
+      and is reported here rather than in the main text.
+\item \textbf{Section~S19} reports the ground-truth stochastic experiment in full
+      (Tables~S35--S40), including the corner of the factorial in which the audit performs worst.
+\end{itemize}
+
+Sections and tables S1--S34 keep the numbering of the earlier version of this work, so that numbers
+quoted in the deposited artefacts continue to resolve. Nothing has been renumbered; the
+stochastic-experiment tables are appended after the last existing table.
+
+
+\section{Data and quality control}
+Hourly PM$_{2.5}$ and PM$_{10}$ observations were retrieved from the OpenAQ open-data archive (public Amazon S3 mirror; no key required). Sentinel ($-999$) and negative values were removed; no upper concentration cap was applied, so the record's largest \pmten{} value ($2{,}978$~\si{\micro\gram\per\cubic\metre} at E11 Road on 2023-09-15) is retained, and records were averaged onto the three-hourly CAMS grid. Table~S1 lists all stations.
+
+\section{CAMS extraction}
+CAMS global reanalysis (EAC4) surface PM$_{2.5}$ (\texttt{pm2p5}) and PM$_{10}$ (\texttt{pm10}) were retrieved at $0.75^\circ$, three-hourly, and converted from \si{\kilo\gram\per\cubic\metre} to \si{\micro\gram\per\cubic\metre} ($\times10^{9}$). The grid cell nearest each station was used.
+
+\section{Models and evaluation}
+The Chronos family (Chronos-2 and Chronos-Bolt) was evaluated across all 24 site--pollutant series; an independent-family model (TimesFM) was also run as a zero-shot spot-check at six sites (Table~S11). Models were applied zero-shot with context length $K$ (default 64 steps) and horizon $H=8$ (24~h). Rolling-origin evaluation used up to 120 equally spaced origins per station; each origin's context window spans $[t-K,\,t-1]$ and its targets span $[t,\,t+H-1]$, so the target never enters the context (no look-ahead leakage). After quality control this yields $4{,}800$ ($\text{PM}_{2.5}$) and $9{,}920$ ($\text{PM}_{10}$) evaluated forecast points overall, of which $230$ and $446$ fall in the top-5\% extreme subset. Within-station samples are strongly autocorrelated, so the station is the coarsest defensible resampling unit for the benchmark arm, and 95\% confidence intervals there were obtained by a station-level cluster bootstrap (2000 resamples of stations with replacement), which keeps each point estimate within its interval. Paired model differences are summarised by Cohen's $d_z$ with Wilcoxon signed-rank $p$-values, reported both raw and under Benjamini--Hochberg and Holm step-down corrections across the ten comparisons (Table~S8). We report detection skill as probability of detection (POD), false-alarm ratio (FAR) and critical success index (CSI), in two ways: (i) as \emph{formal WHO 24-h mean} guideline exceedance, where each origin's eight-step (24-h) forecast mean is compared against the observed 24-h mean (Table~S12); and (ii) as instantaneous three-hourly operational concentration tiers, a routine-elevated tier and a severe short-duration dust tier, which are not WHO health metrics (Table~S9). Additional error metrics (RMSE, mean bias, normalised MAE, and macro/median MAE) are in Table~S13. Extreme events are targets above the station 95th percentile. The cold-start transfer used a histogram gradient-boosting regressor (300 iterations, learning rate 0.05, depth 6) on features \{CAMS value, hour sin/cos, day-of-year sin/cos, latitude, longitude\}; a coordinate-free ablation removing latitude/longitude is reported in Table~S6. Internal early stopping is disabled and \texttt{random\_state} is fixed at 0, which makes the fit deterministic at this training-set size: repeating it under different seeds reproduces every per-station mean absolute error bit-for-bit. The audit applies three controls jointly. (i) A \emph{distance buffer}: every source station within radius $R\in\{0,25,50,100\}$~km of the target is withheld, and the number of surviving sources is reported. (ii) \emph{Time blocking}: the target's record is split into six contiguous blocks, taken at quantiles of the target's own timestamps, and each block is predicted from source data outside that block and outside a guard band set from the measured residual autocorrelation (ten days; a three-day guard chosen to exceed a synoptic dust episode is reported alongside it). (iii) A \emph{leave-one-grid-cell-out} stage: every source sharing the target's $0.75^\circ$ CAMS cell is withheld, because such stations carry identical covariate series. A coordinate-free ablation (latitude and longitude removed) is crossed with all of these. Stability is assessed by resampling the source-station set (100 bootstrap source sets per target, Table~S20), which is the resampling that carries information for a deterministic estimator; the earlier seed-based variant measured the sensitivity of scikit-learn's default early-stopping holdout and is not reported. The coordinate-permutation placebo is run under the reported specification at the two radii that bracket the argument, with 99 permutations each, so the smallest attainable one-sided $p$ is $0.010$ (Table~S24), and the audit is repeated with four learners spanning a wide capacity range (Table~S25). All gains carry station cluster-bootstrap 95\% intervals (2000 resamples), and tests within the audit family are Benjamini--Hochberg corrected across the twenty-four buffer $\times$ feature-set $\times$ design comparisons of Table~S6, with the sign test and the Wilcoxon test corrected as separate families. The family is 24 cells but not 24 distinct statistics: with 19 stations the exact sign test takes only six distinct values across those cells (the Wilcoxon test takes fifteen), because cells sharing a win count share a $p$ value. Benjamini--Hochberg remains valid under such ties and under the positive dependence these cells have, but the correction is correspondingly less costly than a family of 24 independent tests would imply, and we report the uncorrected $p$ values alongside $q$ throughout so that the reader can apply a different family definition. Two robustness analyses supplement the main benchmark: a like-for-like comparison against the archived CAMS operational forecast on the same \pmten{} origins (Table~S14, Figure~S1), a per-country breakdown of the headline result (Table~S15), an episode-block bootstrap that resamples whole multi-day dust episodes to check the \pmten{} significance against event-scale dependence (Table~S16), a grid-representativeness analysis (Table~S17) with a direct test that the headline survives on the best-represented stations (Table~S18), and an independent-model cross-check against NASA MERRA-2 (Table~S19).
+
+\clearpage
+\begin{table}[htbp]\centering\footnotesize
+\caption{Monitoring-station inventory: pollutant, coordinates, observation period, number of matched three-hourly samples, and mean CAMS bias. Bias and sample counts are computed over each station's full matched record (for \pmten{}, 2022-10-29 to 2023-12-31); the rolling-origin evaluation uses the September--December 2023 subset of these records.}
+\begin{tabular}{lccccrr}\toprule
+Station & Pollutant & Lat & Lon & Period & $N$ & CAMS bias (\si{\micro\gram\per\cubic\metre}) \\ \midrule
+Manama & PM2.5 & 26.20 & 50.57 & 2016-12-01--2023-12-22 & 13745 & +6.6 \\
+Kuwait City & PM2.5 & 29.29 & 48.05 & 2017-02-17--2023-12-31 & 15771 & +36.9 \\
+Dhahran & PM2.5 & 26.28 & 50.15 & 2019-10-28--2021-07-14 & 3545 & +11.5 \\
+Jeddah & PM2.5 & 21.54 & 39.17 & 2020-06-15--2023-12-31 & 3095 & +3.8 \\
+Doha & PM2.5 & 25.33 & 51.23 & 2022-04-14--2023-11-30 & 2574 & +15.1 \\
+Bida Zayed & PM10 & 23.65 & 53.70 & 2022-10-29--2023-12-31 & 1073 & -5.5 \\
+Khadeeja School & PM10 & 24.48 & 54.37 & 2022-10-29--2023-12-31 & 1127 & -60.0 \\
+Liwa & PM10 & 23.10 & 53.61 & 2022-10-29--2023-12-31 & 1083 & +8.3 \\
+Hamdan St. & PM10 & 24.49 & 54.36 & 2022-10-29--2023-12-31 & 1081 & -53.4 \\
+Mussafah & PM10 & 24.35 & 54.50 & 2022-10-29--2023-12-31 & 1080 & -73.0 \\
+Al Ain St. & PM10 & 24.23 & 55.77 & 2022-10-29--2023-12-31 & 1068 & -1.4 \\
+Sweihan & PM10 & 24.47 & 55.34 & 2022-10-29--2023-12-31 & 1099 & +37.3 \\
+Khalifa City & PM10 & 24.42 & 54.58 & 2022-10-29--2023-12-31 & 1079 & -52.4 \\
+Gayathi & PM10 & 23.84 & 52.81 & 2022-10-29--2023-12-31 & 1144 & -19.7 \\
+Al Maqtaa & PM10 & 24.40 & 54.52 & 2022-10-29--2023-12-31 & 1083 & -58.9 \\
+Ruwais & PM10 & 24.09 & 52.75 & 2022-10-29--2023-12-31 & 1134 & -3.4 \\
+Baniyas School & PM10 & 24.32 & 54.64 & 2022-10-29--2023-12-31 & 1108 & -35.6 \\
+Habshan S. & PM10 & 23.75 & 53.75 & 2022-10-29--2023-12-31 & 1076 & -14.1 \\
+Al Ain Islamic & PM10 & 24.22 & 55.73 & 2022-10-29--2023-12-31 & 1108 & +2.5 \\
+Zakher & PM10 & 24.16 & 55.70 & 2022-10-29--2023-12-31 & 1134 & +10.7 \\
+Al Qua\textquotesingle{}a & PM10 & 23.53 & 55.49 & 2022-10-29--2023-12-31 & 1094 & -8.2 \\
+Al Tawia & PM10 & 24.26 & 55.70 & 2022-10-29--2023-12-31 & 1096 & -0.8 \\
+E11 Road & PM10 & 24.04 & 53.89 & 2022-10-29--2023-12-31 & 1067 & -73.9 \\
+Al Mafraq & PM10 & 24.29 & 54.59 & 2022-10-29--2023-12-31 & 1084 & -121.2 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Benchmark MAE (\si{\micro\gram\per\cubic\metre}) with bootstrap 95\% confidence intervals, all events and extreme (top 5\%) events.}
+\begin{tabular}{lcc}\toprule
+Model & MAE & 95\% CI \\ \midrule
+\multicolumn{3}{l}{\textit{PM$_{2.5}$: all events}} \\
+raw CAMS & 26.4 & [17.8, 37.7] \\
+bias-corrected CAMS & 23.1 & [16.7, 29.7] \\
+persistence & 16.5 & [12.8, 20.3] \\
+seasonal-naive & 18.9 & [14.0, 24.0] \\
+FM (Chronos-Bolt) & 14.8 & [11.2, 19.1] \\
+FM (Chronos-2) & 14.8 & [11.4, 18.9] \\
+\multicolumn{3}{l}{\textit{PM$_{2.5}$: extreme (top 5\%)}} \\
+raw CAMS & 68.3 & [38.2, 101.3] \\
+bias-corrected CAMS & 76.8 & [39.4, 117.7] \\
+persistence & 89.5 & [47.3, 135.4] \\
+seasonal-naive & 105.1 & [56.7, 147.1] \\
+FM (Chronos-Bolt) & 90.8 & [54.6, 134.3] \\
+FM (Chronos-2) & 91.2 & [54.4, 134.0] \\
+\multicolumn{3}{l}{\textit{PM$_{10}$: all events}} \\
+raw CAMS & 43.0 & [33.3, 55.4] \\
+bias-corrected CAMS & 30.3 & [25.3, 37.1] \\
+persistence & 13.0 & [9.8, 17.4] \\
+seasonal-naive & 22.0 & [16.2, 30.3] \\
+FM (Chronos-Bolt) & 14.7 & [10.7, 20.7] \\
+FM (Chronos-2) & 13.3 & [10.2, 17.6] \\
+\multicolumn{3}{l}{\textit{PM$_{10}$: extreme (top 5\%)}} \\
+raw CAMS & 107.8 & [63.2, 176.2] \\
+bias-corrected CAMS & 75.3 & [46.6, 121.2] \\
+persistence & 42.1 & [27.8, 63.5] \\
+seasonal-naive & 79.2 & [46.8, 128.7] \\
+FM (Chronos-Bolt) & 47.6 & [28.5, 77.1] \\
+FM (Chronos-2) & 40.9 & [27.1, 60.9] \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{MAE (\si{\micro\gram\per\cubic\metre}) by lead time for raw CAMS and the foundation model (Chronos-2).}
+\begin{tabular}{lcccc}\toprule
+Lead (h) & \multicolumn{2}{c}{PM$_{2.5}$} & \multicolumn{2}{c}{PM$_{10}$} \\
+ & CAMS & FM & CAMS & FM \\ \midrule
+3 & 25.7 & 9.4 & 44.2 & 3.6 \\
+6 & 25.5 & 11.7 & 45.0 & 6.7 \\
+9 & 25.8 & 15.1 & 43.3 & 9.4 \\
+12 & 25.6 & 14.9 & 44.3 & 12.2 \\
+15 & 27.3 & 16.3 & 41.7 & 15.0 \\
+18 & 27.4 & 16.8 & 42.3 & 17.5 \\
+21 & 27.3 & 17.7 & 40.7 & 19.9 \\
+24 & 26.2 & 16.2 & 42.5 & 21.6 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Foundation-model and CAMS MAE (\si{\micro\gram\per\cubic\metre}) and their ratio by observed-concentration percentile bin. Ratio $>1$ means CAMS is more accurate. Bins are percentiles of the pooled observed-concentration distribution and therefore do not coincide with the station-wise extreme subset of Table~S2, which is defined by each station's own 95th percentile; the two stratifications are not expected to agree numerically and the crossover statement in the main text is supported by both independently.}
+\begin{tabular}{llccc}\toprule
+Pollutant & Percentile & FM MAE & CAMS MAE & FM/CAMS \\ \midrule
+PM$_{2.5}$ & 0--25 & 8.9 & 21.2 & 0.42 \\
+PM$_{2.5}$ & 25--50 & 7.8 & 26.2 & 0.30 \\
+PM$_{2.5}$ & 50--75 & 9.6 & 25.9 & 0.37 \\
+PM$_{2.5}$ & 75--90 & 14.0 & 25.3 & 0.55 \\
+PM$_{2.5}$ & 90--95 & 21.9 & 31.8 & 0.69 \\
+PM$_{2.5}$ & 95--99 & 41.1 & 34.7 & 1.18 \\
+PM$_{2.5}$ & 99--100 & 147.1 & 100.1 & 1.47 \\
+PM$_{10}$ & 0--25 & 7.0 & 25.3 & 0.28 \\
+PM$_{10}$ & 25--50 & 8.5 & 26.3 & 0.32 \\
+PM$_{10}$ & 50--75 & 10.6 & 39.0 & 0.27 \\
+PM$_{10}$ & 75--90 & 17.6 & 54.6 & 0.32 \\
+PM$_{10}$ & 90--95 & 20.6 & 75.9 & 0.27 \\
+PM$_{10}$ & 95--99 & 45.8 & 118.1 & 0.39 \\
+PM$_{10}$ & 99--100 & 108.3 & 336.3 & 0.32 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Chronos-2 with CAMS as a covariate (\pmtf{}, five sites, dedicated covariate-sweep origin subset; the raw-CAMS reference therefore differs slightly from the pooled Table~S2 value). Mean MAE (\si{\micro\gram\per\cubic\metre}) across stations by context length $K$: raw CAMS, foundation model on observations (c2\_pure), and with the CAMS covariate (c2\_cov). The covariate helps only marginally at the longest context ($K=32$) and hurts at short context.}
+\begin{tabular}{lccc}\toprule
+$K$ & raw CAMS & FM (obs) & FM + CAMS covariate \\ \midrule
+2 & 25.3 & 16.4 & 18.7 \\
+4 & 25.3 & 18.5 & 18.7 \\
+8 & 25.3 & 17.4 & 18.2 \\
+16 & 25.3 & 14.9 & 15.6 \\
+32 & 25.3 & 14.6 & 14.4 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{The audit ladder, with the guard band as the contrast.} The primary
+quantity is $\Delta=\log(\mathrm{MAE_{raw}}/\mathrm{MAE_{transfer}})$, declared in advance;
+$\Delta=+0.13$ is a $12\%$ error reduction. Everything is held fixed across the two halves
+of the table except the guard band separating each time block from its training data:
+three days, chosen to exceed a synoptic dust episode, against ten days, the lag at which
+the residual autocorrelation of this network reaches $+0.08$ (Table~S30). Time blocks are
+quantiles of each target's own timestamps, so the six folds hold 170 to 190 points rather
+than the 4 to 517 that calendar-equal blocks produce on a record with empty months. The
+flat-line quality control of Table~S31 is applied throughout. Intervals are a block
+bootstrap over the nine $0.75^\circ$ CAMS cells (2000 resamples), which is the inference
+unit we adopt because 16 of the 19 stations share a cell and every same-cell pair carries
+an identical covariate series. $q$ is the Benjamini--Hochberg-corrected exact sign test
+across the twenty-four cells of each half. Win counts are for the ten-day guard. Under the
+three-day guard both feature sets clear correction at the two narrowest radii; under the
+ten-day guard nothing clears it anywhere, at a cost of $11.6\%$ of the training data.}
+\begin{tabular}{ccccccccc}\toprule
+& & \multicolumn{3}{c}{guard $=3$ days} & \multicolumn{3}{c}{guard $=10$ days} & \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+$R$ (km) & Sources & Median $\Delta$ & Cell 95\% CI & $q$ & Median $\Delta$ & Cell 95\% CI & $q$ & Win \\ \midrule
+\multicolumn{9}{l}{\textit{distance buffer only: with lat/lon}} \\
+0 & 18.0 & +0.256 & [+0.157, +0.467] & 0.008 & +0.256 & [+0.157, +0.467] & 0.027 & 16/19 \\
+25 & 15.5 & +0.105 & [-0.017, +0.192] & 0.706 & +0.105 & [-0.017, +0.192] & 0.777 & 11/19 \\
+50 & 14.4 & -0.017 & [-0.104, +0.182] & 1.000 & -0.017 & [-0.104, +0.182] & 1.000 & 9/19 \\
+100 & 12.0 & -0.022 & [-1.042, +0.275] & 1.000 & -0.022 & [-1.042, +0.275] & 1.000 & 9/19 \\
+\multicolumn{9}{l}{\textit{distance buffer only: coordinate-free}} \\
+0 & 18.0 & +0.362 & [+0.120, +0.441] & 0.008 & +0.362 & [+0.120, +0.441] & 0.027 & 16/19 \\
+25 & 15.5 & +0.219 & [+0.120, +0.396] & 0.008 & +0.219 & [+0.120, +0.396] & 0.027 & 16/19 \\
+50 & 14.4 & +0.182 & [+0.070, +0.321] & 0.085 & +0.182 & [+0.070, +0.321] & 0.251 & 14/19 \\
+100 & 12.0 & +0.139 & [-0.100, +0.321] & 0.706 & +0.139 & [-0.100, +0.321] & 0.777 & 11/19 \\
+\multicolumn{9}{l}{\textit{buffer $+$ time blocks: with lat/lon}} \\
+0 & 18.0 & +0.251 & [+0.158, +0.337] & 0.008 & +0.207 & [+0.106, +0.302] & 0.017 & 17/19 \\
+25 & 15.5 & +0.143 & [+0.072, +0.218] & 0.006 & +0.045 & [-0.086, +0.161] & 0.251 & 13/19 \\
+50 & 14.4 & +0.074 & [-0.201, +0.143] & 0.085 & +0.073 & [-0.362, +0.191] & 0.251 & 13/19 \\
+100 & 12.0 & +0.057 & [-0.924, +0.249] & 0.706 & +0.034 & [-0.491, +0.191] & 1.000 & 10/19 \\
+\multicolumn{9}{l}{\textit{buffer $+$ time blocks: coordinate-free}} \\
+0 & 18.0 & +0.181 & [+0.025, +0.335] & 0.008 & +0.220 & [-0.023, +0.254] & 0.251 & 13/19 \\
+25 & 15.5 & +0.161 & [+0.027, +0.265] & 0.008 & +0.147 & [-0.061, +0.221] & 0.251 & 13/19 \\
+50 & 14.4 & +0.161 & [+0.005, +0.260] & 0.008 & +0.127 & [-0.080, +0.229] & 0.251 & 13/19 \\
+100 & 12.0 & +0.072 & [-0.025, +0.281] & 0.085 & +0.087 & [-0.162, +0.244] & 0.777 & 11/19 \\
+\multicolumn{9}{l}{\textit{buffer $+$ time $+$ leave-one-grid-cell-out: with lat/lon}} \\
+0 & 16.4 & +0.192 & [+0.059, +0.317] & 0.006 & +0.132 & [-0.015, +0.228] & 0.251 & 13/19 \\
+25 & 15.2 & +0.143 & [+0.056, +0.218] & 0.006 & +0.073 & [+0.016, +0.161] & 0.251 & 14/19 \\
+50 & 14.4 & +0.074 & [-0.201, +0.160] & 0.085 & +0.073 & [-0.362, +0.191] & 0.251 & 13/19 \\
+100 & 12.0 & +0.057 & [-0.924, +0.249] & 0.706 & +0.034 & [-0.618, +0.191] & 1.000 & 10/19 \\
+\multicolumn{9}{l}{\textit{buffer $+$ time $+$ leave-one-grid-cell-out: coordinate-free}} \\
+0 & 16.4 & +0.181 & [+0.005, +0.325] & 0.008 & +0.218 & [-0.061, +0.232] & 0.251 & 13/19 \\
+25 & 15.2 & +0.161 & [+0.005, +0.262] & 0.008 & +0.147 & [-0.041, +0.221] & 0.251 & 13/19 \\
+50 & 14.4 & +0.161 & [+0.016, +0.260] & 0.008 & +0.127 & [-0.041, +0.229] & 0.251 & 13/19 \\
+100 & 12.0 & +0.072 & [+0.000, +0.281] & 0.085 & +0.087 & [-0.162, +0.244] & 0.777 & 11/19 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Per-station zero-observation cold-start transfer for the PM$_{10}$ network (leave-one-station-out, all other 18 stations as sources): observed and CAMS means, CAMS bias, the observation--CAMS temporal correlation, and transfer gain over raw CAMS (\%). Negative gains mark over-correction; at Ruwais ($-3.4$~\ugm{} bias) this is over-correction of an already accurate field, whereas Baniyas School ($-35.6$~\ugm) is a moderately biased site at which transfer nonetheless fails. Across the 19 stations the gain is uncorrelated with $|$bias$|$ (Spearman $-0.13$, Pearson $+0.18$; $-0.23$ excluding Ruwais), so target-site bias does not predict transfer benefit. Station-bootstrap 95\% intervals ($2{,}000$ resamples of the 19 stations) are $[+13.9,+32.5]\%$ for the median gain and $[-28.0,+25.9]\%$ for the mean: the median excludes zero, the mean does not, because percentage gain is bounded above by $100\%$ and unbounded below and is therefore dominated by the single over-corrected station.}
+\begin{tabular}{lccccc}\toprule
+Station & Obs mean & CAMS mean & Bias & Corr. & Transfer gain (\%) \\ \midrule
+Al Mafraq & 176 & 55 & -121.2 & 0.37 & +26.8 \\
+E11 Road & 125 & 51 & -73.9 & 0.39 & +13.9 \\
+Mussafah & 128 & 55 & -73.0 & 0.12 & +39.9 \\
+Khadeeja Sch. & 103 & 43 & -60.0 & 0.38 & +24.3 \\
+Al Maqtaa & 109 & 50 & -58.9 & 0.33 & +32.5 \\
+Hamdan St. & 96 & 43 & -53.4 & 0.11 & +9.8 \\
+Khalifa City & 103 & 50 & -52.4 & 0.39 & +15.6 \\
+Baniyas Sch. & 90 & 55 & -35.6 & 0.50 & -61.0 \\
+Gayathi & 79 & 60 & -19.7 & 0.52 & +15.4 \\
+Habshan S. & 65 & 51 & -14.1 & 0.40 & +17.0 \\
+Al Qua\textquotesingle{}a & 93 & 84 & -8.2 & 0.19 & +14.2 \\
+Bida Zayed & 56 & 51 & -5.5 & 0.31 & +6.7 \\
+Ruwais & 63 & 59 & -3.4 & 0.36 & -244.1 \\
+Al Ain St. & 83 & 82 & -1.4 & 0.50 & +46.4 \\
+Al Tawia & 83 & 82 & -0.8 & 0.50 & +44.2 \\
+Al Ain Islamic & 79 & 82 & +2.5 & 0.30 & +44.0 \\
+Liwa & 71 & 80 & +8.3 & 0.29 & +14.1 \\
+Zakher & 72 & 82 & +10.7 & 0.43 & +37.9 \\
+Sweihan & 68 & 106 & +37.3 & 0.38 & -7.9 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Paired effect sizes for key model comparisons (unit: station); positive Cohen's $d_z$ favours the first model. $p$ is a two-sided Wilcoxon signed-rank test; $p_{\mathrm{BH}}$ and $p_{\mathrm{Holm}}$ are Benjamini--Hochberg and Holm corrections across all ten comparisons. \textbf{The five PM$_{2.5}$ comparisons are underpowered by design}: with $n=5$ stations the smallest attainable two-sided Wilcoxon $p$ is $0.0625$, so no PM$_{2.5}$ comparison can reach significance; these are reported as descriptive effect sizes only (see main text). The PM$_{10}$ gains over CAMS survive both corrections. The FM$\leftrightarrow$persistence comparison is non-significant ($d_z=-0.12$, $p=0.52$), which we report as unresolved rather than as evidence of equivalence: the 95\% interval on $d_z$ (approximately $[-0.60,+0.36]$) excludes neither a moderate foundation-model advantage nor a moderate persistence advantage, and the ordering reverses under RMSE (Table~S13).}
+\begin{tabular}{llcccccc}\toprule
+Pollutant & Comparison & $n$ & $d_z$ & $p$ & $p_{\mathrm{BH}}$ & $p_{\mathrm{Holm}}$ \\ \midrule
+PM$_{2.5}$ & FM (Chronos-2) vs raw CAMS & 5 & +1.37 & 0.062 & 0.069 & 0.375 \\
+PM$_{2.5}$ & FM (Chronos-Bolt) vs raw CAMS & 5 & +1.39 & 0.062 & 0.069 & 0.375 \\
+PM$_{2.5}$ & FM (Chronos-2) vs persistence & 5 & +2.06 & 0.062 & 0.069 & 0.375 \\
+PM$_{2.5}$ & FM (Chronos-2) vs bias-corr. CAMS & 5 & +1.78 & 0.062 & 0.069 & 0.375 \\
+PM$_{2.5}$ & persistence vs raw CAMS & 5 & +1.13 & 0.062 & 0.069 & 0.375 \\
+PM$_{10}$ & FM (Chronos-2) vs raw CAMS & 19 & +1.49 & $<$0.001 & $<$0.001 & $<$0.001 \\
+PM$_{10}$ & FM (Chronos-Bolt) vs raw CAMS & 19 & +1.38 & $<$0.001 & $<$0.001 & $<$0.001 \\
+PM$_{10}$ & FM (Chronos-2) vs persistence & 19 & -0.12 & 0.515 & 0.515 & 0.515 \\
+PM$_{10}$ & FM (Chronos-2) vs bias-corr. CAMS & 19 & +1.75 & $<$0.001 & $<$0.001 & $<$0.001 \\
+PM$_{10}$ & persistence vs raw CAMS & 19 & +1.53 & $<$0.001 & $<$0.001 & $<$0.001 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Detection skill for \emph{instantaneous three-hourly} concentration tiers (operational alert proxies, \emph{not} formal WHO 24-h metrics; the WHO 24-h mean analysis is Table~S12): a routine-elevated tier and a severe short-duration tier. POD and CSI with station cluster-bootstrap 95\% intervals, and FAR. The routine-elevated tiers have high base rates (\pmtf{} 88.6\%, \pmten{} 90.0\% of evaluated points), so CSI values near 0.9 partly reflect the base rate rather than skill; the severe tiers are far rarer and more discriminating. The severe short-duration dust tier ($\geq150$~\si{\micro\gram\per\cubic\metre}, 3-h) is an operational episode threshold, not a health guideline. Raw CAMS detects almost none of the severe short-duration dust episodes, whereas observation-driven nowcasts recover roughly two-thirds.}
+\begin{tabular}{lccc}\toprule
+Model & POD [95\% CI] & FAR & CSI [95\% CI] \\ \midrule
+\multicolumn{4}{l}{\textit{PM$_{2.5}$: routine-elevated 3-h tier ($\geq15$~\si{\micro\gram\per\cubic\metre}, 4251 events)}} \\
+\quad raw CAMS & 0.94 [0.87, 0.98] & 0.08 & 0.86 [0.74, 0.93] \\
+\quad bias-corrected CAMS & 0.82 [0.78, 0.86] & 0.06 & 0.78 [0.70, 0.83] \\
+\quad persistence & 0.93 [0.85, 0.99] & 0.06 & 0.88 [0.76, 0.96] \\
+\quad FM (Chronos-Bolt) & 0.95 [0.86, 0.99] & 0.06 & 0.90 [0.77, 0.97] \\
+\quad FM (Chronos-2) & 0.95 [0.86, 0.99] & 0.06 & 0.89 [0.78, 0.97] \\
+\multicolumn{4}{l}{\textit{PM$_{2.5}$: severe short-duration 3-h tier ($\geq75$~\si{\micro\gram\per\cubic\metre}, 324 events)}} \\
+\quad raw CAMS & 0.61 [0.52, 0.72] & 0.80 & 0.18 [0.13, 0.23] \\
+\quad bias-corrected CAMS & 0.45 [0.42, 0.51] & 0.73 & 0.21 [0.17, 0.23] \\
+\quad persistence & 0.32 [0.22, 0.37] & 0.66 & 0.20 [0.13, 0.22] \\
+\quad FM (Chronos-Bolt) & 0.25 [0.16, 0.32] & 0.53 & 0.20 [0.12, 0.23] \\
+\quad FM (Chronos-2) & 0.27 [0.14, 0.36] & 0.54 & 0.20 [0.10, 0.27] \\
+\multicolumn{4}{l}{\textit{PM$_{10}$: routine-elevated 3-h tier ($\geq45$~\si{\micro\gram\per\cubic\metre}, 8924 events)}} \\
+\quad raw CAMS & 0.67 [0.57, 0.76] & 0.07 & 0.63 [0.55, 0.71] \\
+\quad bias-corrected CAMS & 0.87 [0.82, 0.92] & 0.05 & 0.83 [0.78, 0.89] \\
+\quad persistence & 0.97 [0.95, 0.99] & 0.03 & 0.95 [0.92, 0.97] \\
+\quad FM (Chronos-Bolt) & 0.96 [0.94, 0.98] & 0.03 & 0.94 [0.90, 0.96] \\
+\quad FM (Chronos-2) & 0.97 [0.95, 0.99] & 0.03 & 0.94 [0.92, 0.97] \\
+\multicolumn{4}{l}{\textit{PM$_{10}$: severe short-duration 3-h tier ($\geq150$~\si{\micro\gram\per\cubic\metre}, 765 events)}} \\
+\quad raw CAMS & 0.06 [0.03, 0.12] & 0.85 & 0.04 [0.03, 0.07] \\
+\quad bias-corrected CAMS & 0.50 [0.24, 0.68] & 0.66 & 0.26 [0.09, 0.41] \\
+\quad persistence & 0.68 [0.51, 0.76] & 0.36 & 0.49 [0.34, 0.57] \\
+\quad FM (Chronos-Bolt) & 0.68 [0.50, 0.76] & 0.33 & 0.51 [0.33, 0.62] \\
+\quad FM (Chronos-2) & 0.67 [0.49, 0.76] & 0.36 & 0.48 [0.30, 0.60] \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Pooled zero-observation cold-start MAE (\si{\micro\gram\per\cubic\metre}) with station cluster-bootstrap 95\% intervals: raw CAMS, a global-bias transfer (single mean residual added), and the gradient-boosted residual transfer. Pooling is over all forecast points (station-size weighted), consistent with the main benchmark. Unlike Table~S2, the cold-start evaluation uses the full matched record at each held-out station rather than the 120-origin rolling subset, so its raw-CAMS reference values differ from the main benchmark. The transferred residual lowers the pooled error by $35.8\%$ (PM$_{2.5}$) and $12.0\%$ (PM$_{10}$). The global-bias transfer (a single source-mean residual added everywhere) does not help for PM$_{2.5}$, confirming that the useful part of the correction is spatially structured rather than a constant offset.}
+\begin{tabular}{llcc}\toprule
+Pollutant & Model & MAE & 95\% CI \\ \midrule
+PM$_{2.5}$ & raw CAMS & 33.4 & [19.4, 43.7] \\
+PM$_{2.5}$ & global-bias transfer & 34.0 & [21.8, 39.1] \\
+PM$_{2.5}$ & GBM residual transfer & 21.4 & [16.6, 24.5] \\
+PM$_{10}$ & raw CAMS & 46.6 & [36.4, 58.1] \\
+PM$_{10}$ & global-bias transfer & 45.4 & [37.6, 54.5] \\
+PM$_{10}$ & GBM residual transfer & 41.0 & [32.0, 51.4] \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Independent-family cross-check. TimesFM (Google, decoder-only) was run zero-shot as a spot-check at six sites (three PM$_{2.5}$, three PM$_{10}$) using the same rolling-origin protocol; $N$ is the number of evaluated origins. TimesFM reproduces the large raw-CAMS error gap seen for the Chronos family, confirming that the observation-driven advantage is not specific to one model family. Because this spot-check uses its own $\leq$60-origin subset, the per-site raw-CAMS values differ from the full-benchmark values in Table~S15.}
+\begin{tabular}{lcccc}\toprule
+Site & $N$ & raw CAMS MAE & TimesFM MAE & Reduction (\%) \\ \midrule
+Kuwait City (PM$_{2.5}$) & 60 & 43.5 & 17.8 & 59 \\
+Jeddah (PM$_{2.5}$) & 60 & 13.3 & 10.0 & 25 \\
+Manama (PM$_{2.5}$) & 60 & 30.1 & 18.6 & 38 \\
+Al Mafraq (PM$_{10}$) & 56 & 134.0 & 39.8 & 70 \\
+Mussafah (PM$_{10}$) & 59 & 64.5 & 19.1 & 70 \\
+Al Ain St. (PM$_{10}$) & 47 & 29.1 & 8.2 & 72 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Proper WHO 24-h mean guideline exceedance detection.} Each forecast origin's eight-step (24-h) forecast mean is the prospective 24-h average; the observed 24-h mean is the mean of the eight observed steps. Exceedance is evaluated against the WHO 24-h guideline \emph{value} (15 and 45~\si{\micro\gram\per\cubic\metre}), so these, unlike Table~S9, are genuine 24-h-mean metrics. POD and CSI carry station cluster-bootstrap 95\% intervals. Because both guidelines are exceeded at a high base rate ($545/600=90.8\%$ for \pmtf{}, $1119/1240=90.2\%$ for \pmten{}), an always-alarm rule already attains CSI $0.91$ and $0.90$ respectively; chance-corrected scores derived from the same contingency tables are therefore given as equitable threat score (ETS) and Heidke skill score (HSS). Chance-corrected scores now carry the same station cluster-bootstrap intervals (2000 resamples) as POD and CSI, computed by rebuilding the contingency table from the drawn stations. For \pmten{} (19 stations), ETS/HSS with 95\% intervals: raw CAMS $0.058$ $[-0.006,0.161]$ / $0.110$ $[-0.012,0.277]$; bias-corrected CAMS $0.269$ $[0.130,0.426]$ / $0.424$ $[0.231,0.597]$; persistence $0.578$ $[0.449,0.683]$ / $0.733$ $[0.620,0.811]$; seasonal-naive $0.452$ $[0.310,0.572]$ / $0.623$ $[0.473,0.728]$. For \pmtf{} (5 stations): raw CAMS $0.203$ $[-0.010,0.223]$ / $0.337$ $[-0.021,0.364]$; bias-corrected CAMS $0.236$ $[0.037,0.336]$ / $0.382$ $[0.071,0.503]$; persistence $0.358$ $[0.225,0.407]$ / $0.527$ $[0.368,0.579]$; seasonal-naive $0.436$ $[0.178,0.460]$ / $0.607$ $[0.302,0.630]$. The raw-CAMS interval includes zero for both pollutants, which is a stronger statement than the point estimate alone: on this test the reanalysis is not distinguishable from a chance forecast. The two Chronos rows keep point estimates ($0.53$/$0.69$ and $0.54$/$0.70$ for \pmten{}, $0.42$/$0.59$ and $0.45$/$0.62$ for \pmtf{}) because their per-origin outputs were archived as absolute errors rather than signed predictions, and an absolute error does not determine which side of a threshold a forecast fell on; recomputing their intervals requires re-running the foundation models. Row sample sizes differ where a reference is undefined at some origins (persistence $N=1185$ for \pmten{}, others $N=1240$), so chance-corrected scores are computed on each method's own valid set. ETS and HSS follow Schaefer (1990, \textit{Weather and Forecasting} 5, 570--575). Raw CAMS thus has almost no chance-corrected skill on the \pmten{} test, and on the saturated \pmtf{} test neither raw CAMS nor persistence exceeds the always-alarm reference. For \pmten{} the exceedance base rate is high (1119/1240 origin-level 24-h means, 90.2\%); an always-alarm reference would therefore have POD 1.00, FAR 0.10 and CSI 0.90. Against this high-base-rate reference, the mechanistic field detects only about seven of ten 24-h exceedances (POD 0.72, CSI 0.68) versus $\sim$0.97 for observation-driven nowcasts; for \pmtf{} the guideline is exceeded almost ubiquitously and does not discriminate between methods.}
+\begin{tabular}{lccc}\toprule
+Model & POD [95\% CI] & FAR & CSI [95\% CI] \\ \midrule
+\multicolumn{4}{l}{\textit{PM$_{2.5}$: WHO 24-h mean guideline ($\geq15$~\si{\micro\gram\per\cubic\metre}, 545 events)}} \\
+\quad raw CAMS & 0.96 [0.91, 0.99] & 0.07 & 0.90 [0.77, 0.97] \\
+\quad bias-corr. CAMS & 0.87 [0.84, 0.89] & 0.03 & 0.84 [0.77, 0.88] \\
+\quad persistence & 0.91 [0.82, 0.97] & 0.03 & 0.89 [0.76, 0.97] \\
+\quad seasonal-naive & 0.97 [0.90, 0.99] & 0.04 & 0.93 [0.81, 0.99] \\
+\quad FM (Chronos-Bolt) & 0.96 [0.88, 0.99] & 0.04 & 0.93 [0.81, 0.99] \\
+\quad FM (Chronos-2) & 0.95 [0.87, 0.99] & 0.03 & 0.93 [0.81, 0.99] \\
+\multicolumn{4}{l}{\textit{PM$_{10}$: WHO 24-h mean guideline ($\geq45$~\si{\micro\gram\per\cubic\metre}, 1119 events)}} \\
+\quad always-alarm reference & 1.00 & 0.10 & 0.90 \\
+\quad raw CAMS & 0.72 [0.61, 0.83] & 0.07 & 0.68 [0.58, 0.78] \\
+\quad bias-corr. CAMS & 0.92 [0.89, 0.95] & 0.05 & 0.88 [0.82, 0.93] \\
+\quad persistence & 0.96 [0.94, 0.98] & 0.02 & 0.94 [0.91, 0.97] \\
+\quad seasonal-naive & 0.97 [0.95, 0.98] & 0.04 & 0.93 [0.90, 0.96] \\
+\quad FM (Chronos-Bolt) & 0.96 [0.93, 0.98] & 0.02 & 0.94 [0.90, 0.96] \\
+\quad FM (Chronos-2) & 0.97 [0.95, 0.99] & 0.03 & 0.94 [0.91, 0.97] \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Additional error metrics (all events), reported to complement MAE. RMSE and mean bias expose dust-peak behaviour (raw CAMS under-predicts \pmten{} with mean bias $-23.6$~\si{\micro\gram\per\cubic\metre} and RMSE 69.6, versus near-zero bias and much lower RMSE for observation-driven methods). Normalised MAE (nMAE) is MAE divided by the mean observed concentration. Because station concentrations differ widely, we report both the station-size-weighted pooled MAE and the unweighted station-mean (macro) and median MAE.}
+\begin{tabular}{lcccccc}\toprule
+Model & MAE & RMSE & Bias & nMAE (\%) & Macro-MAE & Median-MAE \\ \midrule
+\multicolumn{7}{l}{\textit{PM$_{2.5}$}} \\
+\quad raw CAMS & 26.4 & 43.5 & +13.4 & 66.9 & 26.4 & 24.8 \\
+\quad bias-corr. CAMS & 23.1 & 40.3 & -0.8 & 58.5 & 23.1 & 23.3 \\
+\quad persistence & 16.5 & 37.8 & -1.7 & 41.8 & 16.5 & 15.9 \\
+\quad FM (Chronos-Bolt) & 14.8 & 35.6 & -3.8 & 37.6 & 14.8 & 13.2 \\
+\quad FM (Chronos-2) & 14.8 & 35.7 & -3.8 & 37.5 & 14.8 & 13.7 \\
+\multicolumn{7}{l}{\textit{PM$_{10}$}} \\
+\quad raw CAMS & 43.0 & 69.6 & -23.6 & 48.8 & 43.5 & 33.8 \\
+\quad bias-corr. CAMS & 30.3 & 57.6 & +3.4 & 34.3 & 31.3 & 27.7 \\
+\quad persistence & 13.0 & 43.0 & +2.0 & 14.7 & 13.7 & 10.1 \\
+\quad FM (Chronos-Bolt) & 14.7 & 54.2 & +2.8 & 16.7 & 15.5 & 10.4 \\
+\quad FM (Chronos-2) & 13.3 & 41.5 & +3.1 & 15.0 & 13.9 & 10.4 \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Operational-forecast comparison (\pmten{})}
+To test whether our use of the EAC4 reanalysis rather than a real-time product drives the conclusion, we repeated the \pmten{} benchmark with the archived CAMS \emph{global atmospheric-composition operational forecast} (\texttt{cams-global-atmospheric-composition-forecasts}, initialised 00 and 12~UTC, particulate\_matter\_10um), retrieved from the Atmosphere Data Store and treated identically to the reanalysis ($\times10^{9}$ conversion, nearest grid cell). For each rolling origin $t_0$ the operational nowcast uses the most recent 00/12~UTC forecast cycle at or before $t_0$, and the prediction for each target valid time is that cycle's value at the corresponding lead (0--33~h); this ignores real-time dissemination latency and is therefore favourable to CAMS. The operational forecast was sampled on the \emph{same} origins and targets as the main \pmten{} benchmark: the reanalysis point estimates are reproduced identically on this matched set ($9{,}920$ forecast points; raw-CAMS MAE $43.0$, 24-h-mean POD $0.72$), so the operational forecast is added as a strictly like-for-like column (persistence, which requires a defined immediately preceding observation, is scored on the $9{,}480$ of these points where one exists). The small CI differences between the main benchmark table (Table~S2) and this matched operational-forecast table reflect independent station-bootstrap draws around the same point estimate, not different underlying forecast targets; the machine-readable supplement records both table outputs and seeds. All \pmten{} origins fall in the September--December 2023 dust period, which the operational archive covers in full; the \pmtf{} operational forecast (whose evaluation window extends back to 2016, before the archive) was not reconstructed and is left for future work.
+
+The operational forecast is statistically indistinguishable from the reanalysis on error and, like it, roughly three times the observation-driven nowcast error (Table~S14, Figure~S1). On WHO 24-h mean detection it flags more exceedances than the reanalysis (POD $0.92$ vs.\ $0.72$) but only by over-forecasting dust, so its balanced skill (CSI $0.86$) stays below the observation-driven nowcasts (CSI $0.94$--$0.95$). The choice of CAMS product therefore does not change the routine-nowcast regime map: on error the two CAMS products are indistinguishable, and although the operational forecast scores higher on 24-h detection (CSI $0.86$ vs.\ the reanalysis $0.68$) it does so by over-forecasting dust and still trails the observation-driven nowcasts. This like-for-like comparison does not evaluate first-onset lead time; that remains a separate prospective forecast-verification question.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Operational-forecast comparison (\pmten{}, matched late-2023 (September--December) dust-period subset, $9{,}920$ forecast points).} MAE (\si{\micro\gram\per\cubic\metre}) with station cluster-bootstrap 95\% intervals, and WHO 24-h mean guideline ($\geq45$~\ugm) detection. The CAMS operational forecast is sampled on the same rolling origins as the main benchmark (which reproduces the reanalysis point estimates to the reported precision). The operational forecast and the reanalysis are indistinguishable on error and both far worse than the observation-driven nowcasts. The reanalysis CI differs slightly from Table~S2 because the operational-forecast comparison was bootstrapped as an independent matched-table run around the same 9,920 targets. \emph{Provenance:} the archived CAMS operational-forecast fields are retrieved from the Copernicus Atmosphere Data Store and are not redistributed in the deposited archive; reproducing this table requires an Atmosphere Data Store account and the request parameters documented in \texttt{data\_retrieval/RETRIEVAL.md} of the archive; no retrieval client is shipped.}
+\begin{tabular}{lccc}\toprule
+Model & MAE [95\% CI] & 24-h POD [95\% CI] & 24-h CSI \\ \midrule
+CAMS operational forecast & 41.6 [34.6, 50.8] & 0.92 [0.89, 0.95] & 0.86 \\
+CAMS reanalysis (EAC4) & 43.0 [33.5, 54.9] & 0.72 [0.61, 0.82] & 0.68 \\
+bias-corrected CAMS & 30.3 [25.2, 36.6] & 0.92 [0.89, 0.96] & 0.88 \\
+persistence & 13.0 [9.7, 17.2] & 0.97 [0.96, 0.99] & 0.95 \\
+FM (Chronos-Bolt) & 14.7 [10.5, 20.6] & 0.96 [0.93, 0.98] & 0.94 \\
+FM (Chronos-2) & 13.3 [10.1, 17.5] & 0.97 [0.95, 0.99] & 0.94 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{FigS1.png}
+\caption{\textbf{The CAMS operational forecast behaves like the reanalysis (\pmten{}).} (a) MAE on the matched late-2023 (September--December) dust-period subset with station cluster-bootstrap 95\% intervals: the operational forecast ($42$) and the EAC4 reanalysis ($43$) are statistically indistinguishable, both roughly three times the observation-driven nowcast error ($\sim$13). (b) MAE by forecast lead time: both CAMS products stay flat near $40$--$45$~\ugm{} across the 24-h horizon (they carry no recent-observation information), whereas the observation-driven nowcasts rise from $\sim$4 to $\sim$21~\ugm{} as the informativeness of the last observation fades.}
+\label{fig:opfcst}
+\end{figure}
+
+\section{Cross-region robustness}
+The observation-driven advantage is present in every national network sampled, not only in aggregate (Table~S15). For \pmtf{} the five sites span four countries and both the Gulf and Red Sea coasts; Chronos-2 lowers MAE over the CAMS reanalysis at every one, by $20\%$ (Jeddah, Red Sea, the mildest site) to $54\%$ (Dhahran). Each \pmtf{} country is represented by a single station, so these are per-station point estimates rather than cluster-bootstrap intervals; the \pmten{} row is the 19-station Abu Dhabi network with intervals. A fully external region and season (outside the Arabian Peninsula) remains the strongest outstanding generalisation test.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Cross-region robustness.} Benchmark MAE (\si{\micro\gram\per\cubic\metre}) by country/subregion for raw CAMS, persistence and Chronos-2, with the Chronos-2 reduction over CAMS. The observation-driven nowcast beats CAMS in every region and for both pollutants. \pmtf{} regions are single stations (point estimates); the \pmten{} row is the 19-station Abu Dhabi network.}
+\begin{tabular}{llccccc}\toprule
+Region & Pollutant & Sites & raw CAMS & Persistence & Chronos-2 & FM gain (\%) \\ \midrule
+Bahrain (Manama) & PM2.5 & 1 & 25.9 & 19.7 & 17.0 & 34.4 \\
+Kuwait (Kuwait City) & PM2.5 & 1 & 47.0 & 22.8 & 22.0 & 53.2 \\
+Qatar (Doha) & PM2.5 & 1 & 21.7 & 15.9 & 13.7 & 36.9 \\
+Saudi Arabia, E. coast (Dhahran) & PM2.5 & 1 & 24.8 & 13.2 & 11.3 & 54.4 \\
+Saudi Arabia, Red Sea (Jeddah) & PM2.5 & 1 & 12.4 & 10.8 & 9.9 & 20.2 \\
+UAE, Abu Dhabi network & PM10 & 19 & 43.0 & 13.0 & 13.3 & 69.1 \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Sensitivity to temporal (dust-event) dependence}
+The \pmten{} confirmatory arm is a single dense cluster (median nearest-neighbour distance 6.5~km) observed in one late-2023 (September--December) dust period: all \pmten{} origins fall between 1~September and 30~December 2023, and because dust is synoptic, the truly independent sampling units are not the 19 stations or the $\sim$80 distinct origin days (about 65 origins per station at stride 18~h, overlapping across stations) but the 12 multi-day dust \emph{episodes} (maximal runs of origins separated by no more than 36~h). We therefore recomputed the headline \pmten{} comparison with an \emph{episode-block bootstrap} that resamples whole episodes with replacement (2000 resamples, 12 episode blocks), which is the correct scale for synoptic dependence. Resampling at this coarser scale changes the per-model intervals (raw CAMS $43.0$, 95\% CI $[38.1, 47.7]$; Chronos-2 $13.3$, $[8.7, 17.8]$): because episode resampling holds the 19-station panel fixed, between-station variance, the dominant term in the station cluster bootstrap, is not resampled, and the raw-CAMS interval is accordingly narrower than its station-cluster counterpart rather than wider. The raw-CAMS$-$Chronos-2 pooled-MAE gap nonetheless remains $29.8$~\si{\micro\gram\per\cubic\metre} (95\% CI $28.7$--$31.5$) and excludes zero, because CAMS trails the nowcast by a similar margin in every episode (Table~S16). We do not claim either one-way bootstrap captures the full station$\times$episode dependence; the true joint interval is likely wider than either marginal. The effect size ($d_z=1.49$) is nonetheless large enough that the sign is secure under episode-scale resampling. What no resampling can repair is external generalisation: the reported $p$-values speak to within-season, within-region skill only, and transfer to other regions or years remains to be tested.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Episode-block bootstrap (\pmten{}).} Pooled MAE (\si{\micro\gram\per\cubic\metre}) and the raw-CAMS$-$Chronos-2 gap with 95\% intervals from resampling whole synoptic dust episodes, which is the correct scale for synoptic temporal dependence. Episodes are defined operationally as maximal runs of forecast origins separated by no more than 36~h, which partitions the September--December 2023 record into 12 multi-day blocks; blocks, not origins, are the resampling units (2000 resamples). Because episode resampling holds the station panel fixed, between-station variance is not resampled and the raw-CAMS interval is narrower than its station-cluster counterpart; the paired gap nonetheless excludes zero because CAMS trails the nowcast in every one of the 12 episodes.}
+\begin{tabular}{lcc}\toprule
+Quantity & Estimate & 95\% CI (episode-block) \\ \midrule
+raw CAMS MAE & 43.0 & [38.1, 47.7] \\
+bias-corrected CAMS MAE & 30.3 & [23.7, 37.5] \\
+Chronos-2 MAE & 13.3 & [8.7, 17.8] \\
+Chronos-Bolt MAE & 14.7 & [9.7, 18.9] \\
+persistence MAE & 13.0 & [8.2, 18.0] \\
+seasonal-naive MAE & 22.0 & [12.9, 30.1] \\
+raw CAMS $-$ Chronos-2 gap & 29.8 & [28.7, 31.5] \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Grid representativeness versus systematic bias (\pmten{})}
+Because the CAMS grid is coarse ($0.75^\circ$, $\approx$80~km), point monitors within one cell share an identical CAMS value, so the spread of their observed means bounds the point-versus-cell representativeness error. Table~S17 lists the six cells containing two or more \pmten{} monitors: the within-cell station standard deviation has median $8.4$~\ugm{} but reaches $\sim40$~\ugm{} in the two strong-gradient urban dust cells, so representativeness variability is concentration-dependent and material at the hotspots. We do not claim this spread is negligible; regulatory monitors are preferentially sited in urban/roadside dust hotspots, so part of the large single-station biases (e.g., $-121$~\ugm{} at Al~Mafraq) is genuine sub-grid sampling mismatch rather than an emission deficiency, and we therefore report the network-mean bias rather than the extreme. The key control against a representativeness artefact is not this bound but the direct test in Table~S18: restricting to the nine best-represented stations (those with $|\text{CAMS bias}|\leq15$~\ugm), where sampling mismatch is smallest, the observation-driven advantage is undiminished (Chronos-2 lowers MAE over CAMS by $68\%$, versus $69\%$ over all 19). Because the headline holds where representativeness error is smallest, it is not an artefact of a few badly-sited monitors.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Representativeness bound (\pmten{}).} For each $0.75^\circ$ CAMS cell containing $\geq2$ monitors (identical CAMS value), the number of monitors, their mean observed concentration, and the within-cell range and standard deviation of station means (a direct estimate of point-versus-cell representativeness variability). Stations are assigned to the nearest $0.75^\circ$ grid centre, matching the extraction in Section~2; the deposited helper script has been corrected to use the same rule. Sixteen of the 19 stations share a cell with at least one other, so their CAMS covariate series are identical, which is why a leave-one-grid-cell-out stage is included in the audit (Table~S6, Table~S24). The spread is concentration-dependent: the median within-cell standard deviation is $8.4$~\ugm{} but reaches $37.5$--$43.0$~\ugm{} in the two high-dust urban cells (within-cell ranges of 69 and 86~\ugm), so representativeness is material at hotspots. The headline is therefore validated on the well-represented station subset (Table~S18), not by a magnitude bound alone.}
+\begin{tabular}{cccccc}\toprule
+Cell lat & Cell lon & Monitors & Obs mean & Within-cell range & Within-cell SD \\ \midrule
+24.00 & 52.50 & 2 & 71 & 16 & 11.6 \\
+24.00 & 54.00 & 3 & 82 & 69 & 37.5 \\
+24.00 & 54.75 & 3 & 131 & 86 & 43.0 \\
+24.00 & 55.50 & 4 & 79 & 12 & 5.3 \\
+24.75 & 54.00 & 2 & 100 & 7 & 4.8 \\
+24.75 & 54.75 & 2 & 106 & 6 & 4.4 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{The headline survives on well-represented stations (\pmten{}).} Benchmark MAE (\si{\micro\gram\per\cubic\metre}) split by CAMS representativeness: the nine stations with small CAMS bias ($|\text{bias}|\leq15$~\ugm, mean $|\text{bias}|$ $6.1$~\ugm; least affected by sub-grid siting) versus the ten high-bias stations. The Chronos-2 reduction over raw CAMS is essentially identical in both subsets ($68\%$ vs $70\%$) and matches the full-network value ($69\%$), so the observation-driven advantage is not driven by point-versus-cell representativeness error at hotspot monitors.}
+\begin{tabular}{lccccc}\toprule
+Subset & Stations & raw CAMS & Persistence & Chronos-2 & FM gain (\%) \\ \midrule
+All & 19 & 43.0 & 13.0 & 13.3 & 69 \\
+Low CAMS bias ($|\text{bias}|\leq15$) & 9 & 26.7 & 8.5 & 8.6 & 68 \\
+High CAMS bias & 10 & 57.2 & 16.8 & 17.3 & 70 \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Independent-model cross-check: MERRA-2 (\pmten{})}
+To test whether the observation-driven advantage is specific to the CAMS/ECMWF modelling system or to its $0.75^\circ$ resolution, we repeated the \pmten{} comparison against NASA MERRA-2 (M2T1NXAER hourly aerosol surface diagnostics, $0.5^\circ\times0.625^\circ$; GEOS/GOCART, an independent model and finer grid than EAC4), retrieved from the GES DISC archive and sampled at the grid cell nearest each station and the nearest hour to each benchmark valid time (within 90~min). The M2T1NXAER surface collection resolves dust only as a total field (to $\sim$20~$\mu$m diameter) and a PM$_{2.5}$-mode field, with no direct sub-$10~\mu$m (PM$_{10}$) dust diagnostic, so a single MERRA-2 \pmten{} is ambiguous. We therefore evaluate two reconstruction scenarios. The total-dust scenario uses $\text{DUSMASS}+\text{SSSMASS}+\text{BCSMASS}+1.4\,\text{OCSMASS}+1.375\,\text{SO4SMASS}$ ($\times10^{9}$ to \si{\micro\gram\per\cubic\metre}); because total dust includes coarse particles beyond $10~\mu$m diameter, it over-predicts \pmten{} (mean bias $+127$~\ugm). The PM$_{2.5}$-mode scenario replaces total dust and sea salt with their PM$_{2.5}$-mode diagnostics ($\text{DUSMASS25}$, $\text{SSSMASS25}$); by omitting the $2.5$--$10~\mu$m coarse dust that belongs to \pmten{}, it under-predicts (mean bias $-35$~\ugm). For each scenario we also remove the per-station mean observation$-$MERRA offset (bias correction), which absorbs the reconstruction offset and any model mean bias. On the same $9{,}872$ matched forecast points, bias-corrected MERRA-2 \pmten{} MAE spans $25.9$ (PM$_{2.5}$-mode scenario) to $101$~\ugm{} (total-dust scenario). This is not a strict mathematical bracket on MAE, because bias-corrected MAE need not be monotonic in the reconstructed concentration. The relevant robustness point is instead conservative: even the most favourable reconstruction scenario remains about $1.95\times$ the observation-driven nowcast error ($25.9$ vs.\ $13.3$~\ugm) and only modestly better than bias-corrected CAMS ($30.3$~\ugm; Table~S19). An independent, finer mechanistic reanalysis therefore does not close the gap under these coarse-dust treatments: a model that can even beat CAMS after bias correction still cannot track short-horizon point concentrations without the recent observation, because it lacks that information, not because of its grid or family.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Independent-model cross-check (\pmten{}, MERRA-2), two reconstruction scenarios.} MAE (\si{\micro\gram\per\cubic\metre}) with station cluster-bootstrap 95\% intervals and mean bias, on the same $9{,}872$ matched \pmten{} forecast points (48 of the $9{,}920$ benchmark points lack a MERRA-2 value within the 90-min matching window). The PM$_{2.5}$-mode scenario under-predicts coarse dust, whereas the total-dust scenario over-predicts \pmten{}. The resulting MAE span is not a strict mathematical bound, but even the most favourable bias-corrected scenario is about $1.95\times$ the observation-driven nowcast and only modestly better than bias-corrected CAMS. \emph{Provenance:} MERRA-2 M2T1NXAER granules are retrieved from the NASA GES DISC archive and are not redistributed in the deposited archive; reproducing this table requires a NASA Earthdata login and the collection and matching parameters documented in \texttt{data\_retrieval/RETRIEVAL.md} of the archive; no retrieval client is shipped.}
+\begin{tabular}{lcc}\toprule
+Model & MAE [95\% CI] & Mean bias \\ \midrule
+MERRA-2 total-dust scenario, raw & 136.1 [119.9, 152.5] & $+127.2$ \\
+MERRA-2 total-dust scenario, bias-corrected & 101.3 [91.1, 112.4] & $0.0$ \\
+MERRA-2 PM$_{2.5}$-mode scenario, raw & 43.2 [34.0, 55.0] & $-34.7$ \\
+MERRA-2 PM$_{2.5}$-mode scenario, bias-corrected & 25.9 [22.4, 30.3] & $0.0$ \\
+CAMS reanalysis (reference) & 43.0 & $-23.6$ \\
+persistence (reference) & 13.0 & $+2.0$ \\
+Chronos-2 (reference) & 13.3 & $+3.1$ \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Reproducibility details}
+Foundation models were run zero-shot from public checkpoints with the \texttt{chronos-forecasting} (v2.3.1) and \texttt{timesfm} packages on PyTorch 2.x (CPU): \texttt{amazon/chronos-2}, \texttt{amazon/chronos-bolt-small}, and \texttt{google/timesfm-2.5-200m} (six-site cross-check). Point forecasts are the predictive median (0.5 quantile); no probabilistic post-processing was applied. Inputs are the raw observed series in native \si{\micro\gram\per\cubic\metre} with the model's internal scaling; no external normalisation was added. Context windows require $>95\%$ non-missing coverage and are gap-filled by forward/backward fill before inference; origins whose targets contain any missing value are dropped. All stochastic steps use fixed, recorded seeds (0 unless stated): the gradient-boosting transfer (\texttt{HistGradientBoostingRegressor}, 300 iterations, learning rate 0.05, max depth 6) and every bootstrap within a given table-generation script; confidence intervals in different tables therefore come from independently seeded bootstrap draws over the same data, which accounts for sub-tenth differences between, e.g., Tables~S2 and~S14. Where a robustness table was generated as an independent matched-table run, the supplement preserves the table-specific seed record and output so that small bootstrap-CI differences can be reproduced. Rolling origins are equally spaced (up to 120 per station, stride 6 steps). The bias-corrected baseline removes the rolling mean of the past-$K$ observation$-$CAMS residual; seasonal-naive uses the value 24~h earlier (dropped when missing); the CAMS-residual hybrid forecasts the residual series and adds it back to the aligned CAMS field at each target step. Chronos-2 and Chronos-Bolt are the released model sizes named above. The pretraining corpora of public foundation models are not fully auditable, so prior exposure to public air-quality time series, including OpenAQ-like data, cannot be completely excluded; this is why all model claims are interpreted against persistence, seasonal-naive and CTM-only references rather than as pure zero-shot generalisation. MERRA-2 M2T1NXAER (collection 5.12.4) hourly surface aerosol diagnostics were retrieved from NASA GES DISC and reconstructed to surface \pmten{} as described above; the nearest grid cell and nearest hour (within 90~min) to each benchmark valid time were used. Machine-readable processed tables, consistency checks and script entry points are in the public repository at \texttt{github.com/bisu9082/serra\_camscast}.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Stability of the cold-start transfer under source-set resampling.} The estimates in Tables~S6, S7 and S10 come from a deterministic fit (internal early stopping disabled, \texttt{random\_state}~$=0$), which reproduces bit-for-bit under any seed; a seed-based stability check is therefore undefined for the estimator actually used. We instead resample the quantity that is actually stochastic, the set of source stations, drawing 100 bootstrap source sets per target and refitting (an earlier version used 12; the ratio below is smaller with the larger sample and we report the larger sample). The coordinate-bearing specification is $3.5$ times the more variable at zero buffer and $4.6$ times at 100~km, in the same direction as every other diagnostic in the audit: which stations happen to be available matters far more to the coordinate-bearing fit than to the coordinate-free one. Entries are the pooled gain over raw CAMS, mean $\pm$ standard deviation across bootstrap replicates, with the 2.5th--97.5th percentile interval.}
+\begin{tabular}{clcccc}\toprule
+$R$ (km) & Feature set & Pooled gain (\%) & SD (pp) & 95\% interval (\%) & SD ratio \\ \midrule
+0 & with lat/lon & +8.3 & 7.49 & [-7.0, +20.0] & \multirow{2}{*}{$3.5\times$} \\
+0 & coordinate-free & +18.9 & 2.13 & [+15.4, +23.3] & \\
+100 & with lat/lon & -28.8 & 11.61 & [-52.2, -8.2] & \multirow{2}{*}{$4.6\times$} \\
+100 & coordinate-free & +6.3 & 2.52 & [+1.3, +10.2] & \\
+\bottomrule\end{tabular}\end{table}
+
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Feature ablation: where the coordinate-free gain comes from (\pmten{}, distance buffer only).} Removing latitude and longitude leaves the day-of-year sinusoids carrying the entire gain. Over a single-year record those sinusoids are a bijection onto the date, and at a 100~km buffer every target timestamp is still present at some surviving source, so the ``coordinate-free'' gain under a spatial buffer is in part a lookup of the network-wide residual at the target's own timestamp. This is the motivation for the time-blocking control in Table~S6. Intervals are station cluster bootstraps.}
+\begin{tabular}{lcccc}\toprule
+Feature set & \multicolumn{2}{c}{$R=0$} & \multicolumn{2}{c}{$R=100$~km} \\
+ & Pooled (\%) [95\% CI] & Median (\%), Win & Pooled (\%) [95\% CI] & Median (\%), Win \\ \midrule
+CAMS only & +11.7 [-0.4, +21.6] & -0.4, 9/19 & -1.2 [-16.0, +8.3] & -4.5, 9/19 \\
+$+$ hour & +12.1 [-0.6, +21.8] & -1.6, 9/19 & -3.4 [-19.4, +7.4] & -6.6, 9/19 \\
+$+$ day-of-year & +22.3 [+10.9, +30.7] & +31.0, 16/19 & +10.7 [-1.8, +19.4] & +13.0, 12/19 \\
+coordinate-free & +22.3 [+10.3, +31.1] & +30.7, 16/19 & +9.3 [-3.8, +18.5] & +13.0, 12/19 \\
+$+$ lat/lon (full) & +12.0 [-9.8, +25.9] & +15.6, 16/19 & -39.3 [-89.1, -5.6] & -0.6, 9/19 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Paired comparison of the two feature sets (\pmten{}).} Per-station transfer MAE, coordinate-bearing minus coordinate-free, so a positive difference favours the coordinate-free specification. Under the full spatiotemporal control the two are indistinguishable at zero buffer and separate only marginally at the widest buffer: coordinates are not harmful in themselves, they are fragile, and the buffer is what exposes that. The distance-buffer-only design overstates the separation at every radius.}
+\begin{tabular}{clccccc}\toprule
+$R$ (km) & Design & Mean diff.\ (\ugm) & 95\% CI & Coord.-free better & $d_z$ & Wilcoxon $p$ \\ \midrule
+0 & buffer only & +4.66 & [-2.55, +12.95] & 8/19 & +0.26 & 0.679 \\
+0 & buffer $+$ time & +0.10 & [-2.94, +3.19] & 9/19 & +0.01 & 0.829 \\
+25 & buffer only & +5.30 & [-1.61, +11.69] & 12/19 & +0.34 & 0.145 \\
+25 & buffer $+$ time & +1.53 & [-1.05, +3.92] & 13/19 & +0.26 & 0.210 \\
+50 & buffer only & +9.94 & [+2.28, +17.79] & 13/19 & +0.57 & 0.045 \\
+50 & buffer $+$ time & +4.81 & [-0.29, +10.60] & 13/19 & +0.39 & 0.113 \\
+100 & buffer only & +22.38 & [+8.39, +36.59] & 14/19 & +0.68 & 0.018 \\
+100 & buffer $+$ time & +6.41 & [-0.11, +13.51] & 14/19 & +0.41 & 0.066 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Is the transfer gain predicted by the target's own CAMS bias?} Spearman rank correlation between $|$CAMS bias$|$ at the held-out station and its transfer gain, by buffer radius. At zero buffer there is no association, which was the basis for the earlier claim that target-site bias is not a usable screening variable. The rank correlation rises with radius and is largest at the radius that corresponds to an unmonitored site, but only the spatial-only $R=100$~km cell survives Benjamini--Hochberg correction across the sixteen cells of this family ($q=0.023$); the full-control cell that an operational rule would have to rest on does not ($q=0.12$). We therefore report the association as a hypothesis the data are consistent with, not as an established second gate, and the rule defended in the main text is the distance gate alone. The coordinate-free specification is the less bias-sensitive of the two at wide buffers.}
+\begin{tabular}{llcccc}\toprule
+Design & Feature set & $R=0$ & $R=25$ & $R=50$ & $R=100$ \\ \midrule
+buffer only & with lat/lon & $-0.13$ (0.586) & $-0.17$ (0.495) & $+0.26$ (0.286) & $+0.68$ (0.001) \\
+buffer only & coordinate-free & $+0.03$ (0.904) & $+0.34$ (0.156) & $+0.34$ (0.152) & $+0.52$ (0.023) \\
+buffer $+$ time & with lat/lon & $+0.28$ (0.251) & $+0.32$ (0.188) & $+0.34$ (0.158) & $+0.53$ (0.021) \\
+buffer $+$ time & coordinate-free & $+0.39$ (0.098) & $+0.32$ (0.178) & $+0.23$ (0.348) & $+0.26$ (0.286) \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Two further controls (\pmten{}).} \emph{Upper block}, leave-one-grid-cell-out: every source sharing the target's $0.75^\circ$ CAMS cell is withheld, removing the identical-covariate path created by grid sampling (16 of 19 stations share a cell with at least one other, at separations up to 46~km). The gain is undiminished, so grid-cell sharing inflates the apparent collapse of the distance-buffered ladder without generating the transfer signal. Table~S33 shows the same conclusion holds under seven positions of the grid origin. \emph{Lower blocks}, coordinate permutation placebo under the specification this paper reports (flat-line QC at $K=6$, quantile time blocks, ten-day guard, full buffer $+$ time $+$ cell control), on the log error ratio $\Delta$. Each station keeps a constant coordinate pair but the pairs are permuted among stations, so the coordinates are geographically wrong while every other feature is untouched. Ninety-nine permutations are run at each radius, so the smallest attainable one-sided $p$ is $0.010$; an earlier version used 30 draws, at which $0.032$ was the floor and neither result could be resolved below $0.05$. The sign of the true-minus-scrambled difference changes along the ladder, which is the reading the placebo is for. At $R=0$ the true assignment sits at the 59th percentile of its own null and is indistinguishable from a wrong one (two-sided $p=0.90$): with every non-cellmate neighbour available the coordinates add
+nothing the day-of-year term does not already supply, a conclusion the feature
+ablation of Table~S21 reaches independently. At $R=100$~km the true assignment sits at the 10th percentile and 89 of 99 geographically wrong assignments beat it, because the target lies outside the region its surviving sources span and the learner extrapolates along the coordinate axes; that direction is clear but not itself significant (one-sided $p=0.11$ for ``true worse'', two-sided $p=0.21$). We report the sign change and not a significance claim. The earlier buffer-only placebo at $R=0$ (200 draws) is not carried forward, because it was computed under the pipeline this paper rejects --- a three-day guard, calendar blocks and no flat-line control --- and mixing it with these would mix both the specification and the scale. The permutation null is summarised rather than bootstrapped, so no cluster-bootstrap interval is given for it (n/a); intervals elsewhere are station cluster bootstraps.}
+\begin{tabular}{llcccc}\toprule
+Control & Feature set / replicate & Pooled gain (\%) & 95\% CI & Win & $d_z$ \\ \midrule
+\multicolumn{6}{l}{\textit{leave-one-grid-cell-out (mean 16.4 surviving sources)}} \\
+cell only & with lat/lon & +15.2 & [-4.8, +26.8] & 16/19 & +0.39 \\
+cell only & coordinate-free & +18.1 & [+5.0, +27.8] & 16/19 & +0.59 \\
+cell $+$ time & with lat/lon & +16.8 & [+10.3, +24.2] & 18/19 & +0.87 \\
+cell $+$ time & coordinate-free & +14.1 & [+5.2, +21.4] & 16/19 & +0.67 \\
+\multicolumn{6}{l}{\textit{coordinate permutation placebo, full control, 99 permutations per radius}} \\
+ & & \multicolumn{2}{c}{$R=0$} & \multicolumn{2}{c}{$R=100$~km} \\
+true assignment & median $\Delta$ & \multicolumn{2}{c}{$+0.1316$ \; (13/19)} & \multicolumn{2}{c}{$+0.0338$ \; (10/19)} \\
+permutation null & mean $\pm$ SD & \multicolumn{2}{c}{$+0.1243\pm0.0561$} & \multicolumn{2}{c}{$+0.1097\pm0.0604$} \\
+\quad null 2.5--97.5\% & & \multicolumn{2}{c}{$[+0.0221,+0.2291]$} & \multicolumn{2}{c}{$[+0.0143,+0.2062]$} \\
+\quad percentile of true & & \multicolumn{2}{c}{59th} & \multicolumn{2}{c}{10th} \\
+\quad scrambled $\geq$ true & & \multicolumn{2}{c}{41 of 99 (41\%)} & \multicolumn{2}{c}{89 of 99 (90\%)} \\
+\quad one-sided $p$, true worse & & \multicolumn{2}{c}{$0.590$} & \multicolumn{2}{c}{$0.110$} \\
+\quad two-sided $p$ & & \multicolumn{2}{c}{$0.900$} & \multicolumn{2}{c}{$0.210$} \\
+\quad reading & & \multicolumn{2}{c}{coordinates inert} & \multicolumn{2}{c}{coordinates a liability} \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Detection skill: WHO 24-h mean and short-duration episodes}
+Error in \ugm{} matters for warnings only insofar as it changes which exceedances are flagged, so we also evaluate threshold detection (Figure~4 of the main text), reported two ways to keep the health interpretation rigorous. First, as a \emph{formal WHO 24-h mean} exceedance: each origin's eight-step forecast mean (a prospective 24-h average) is compared against the observed 24-h mean. At the \pmten{} guideline ($45$~\ugm), exceedances are common in this late-2023 (September--December) dust-period subset (1119 of 1240 origin-level 24-h means, 90.2\%), so an always-alarm rule would already reach CSI 0.90. Against that high-base-rate reference, raw CAMS detects about seven in ten 24-h exceedance windows (POD $0.72$, 95\% CI $0.61$--$0.83$; CSI $0.68$), whereas observation-driven nowcasts reach near-complete detection (foundation model POD $0.97$, $0.95$--$0.99$; persistence $0.97$) at comparable false-alarm ratio (Table~S12). Because the base rate is high, raw CSI flatters every method, so we also report chance-corrected scores computed from the same contingency tables: the equitable threat score is $0.06$ for raw CAMS (essentially no skill beyond chance despite a CSI of $0.68$) against $0.53$--$0.56$ for the observation-driven nowcasts (persistence $0.56$, seasonal-naive $0.45$, Chronos-Bolt $0.53$, Chronos-2 $0.54$) and $0.27$ for bias-corrected CAMS (Table~S12). Chance correction therefore sharpens rather than softens the contrast. Second, as instantaneous three-hourly operational tiers, which are \emph{not} WHO health metrics but capture short-duration episodes relevant to same-day advisories. On a severe short-duration dust tier ($\geq150$~\ugm, 3-h), raw CAMS detects only $6\%$ of episodes (POD $0.06$, $0.03$--$0.12$), reflecting its systematic dust under-prediction, while a recent-observation nowcast recovers roughly two-thirds (foundation model POD $0.67$, $0.49$--$0.76$; persistence $0.68$); we phrase this as low retrospective detection skill for EAC4 in this benchmark rather than a general operational claim. This target-based detection analysis should not be read as a first-onset lead-time test: a persistence-like nowcast can score well once dust is already elevated while still missing a sudden onset from a clean recent history, the classic forecaster's dilemma for observation-conditioned warnings. The three-hourly detection gap persists across the 24~h horizon (Figure~4 of the main text). The \pmtf{} guideline ($15$~\ugm) is exceeded almost ubiquitously ($545$ of $600$ origin-level 24-h means, base rate $90.8\%$, at which an always-alarm rule already scores CSI $0.91$), so 24-h detection is uniformly high, including raw CAMS, and does not discriminate: raw CAMS and persistence (CSI $0.90$ and $0.89$) do not beat that reference at all, and the methods that do clear it, seasonal-naive (CSI $0.93$) and the two foundation models (CSI $0.93$), exceed it only marginally, with the seasonal-naive reference matching them (chance-corrected ETS $0.44$ for seasonal-naive and $0.42$--$0.45$ for the foundation models, against $0.20$ for raw CAMS, Table~S12); and no method reliably flags rare, sharp severe-\pmtf{} spikes ($\geq75$~\ugm, 3-h; CSI $\leq0.21$ for all), a limit of short-horizon autoregressive prediction for rare sharp \pmtf{} spikes, whose composition (fine-mode dust, secondary or combustion aerosol) is not resolved by our data (raw CAMS reaches a higher severe-\pmtf{} POD only by over-warning, FAR $0.80$, so its CSI is no better). Throughout, persistence matches the foundation model, reinforcing that the lever is the observation stream, not the model.
+
+\section{Robustness: operational forecast and cross-region consistency}
+Two checks address the largest external-validity concerns for a reanalysis-based, single-region benchmark. First, to test whether using EAC4 rather than a real-time product drives the result, we repeated the \pmten{} benchmark with the archived CAMS operational forecast (initialised 00/12~UTC), sampled at each origin from the most recent cycle at or before the origin and evaluated on the \emph{same} rolling origins as the reanalysis (Table~S14, Figure~S1). The operational forecast is statistically indistinguishable from the reanalysis (MAE $41.6$~\ugm, 95\% CI $34.6$--$50.8$, vs.\ $43.0$, $33.5$--$54.9$) and, like it, roughly three times the observation-driven nowcast error ($13.0$--$13.3$); both CAMS products stay flat near $40$--$45$~\ugm{} across the 24-h horizon while the observation-driven error rises from $\sim$4 to $\sim$21~\ugm{} with lead (Figure~S1b). On WHO 24-h mean detection the operational forecast flags more exceedances than the reanalysis (POD $0.92$ vs.\ $0.72$) but only by over-forecasting dust, so its balanced skill remains below the observation-driven nowcasts (CSI $0.86$ vs.\ $0.94$--$0.95$). The choice of CAMS product therefore does not change the regime map: the two CAMS products are indistinguishable on error, and although the operational forecast scores higher on 24-h detection than the reanalysis (CSI $0.86$ vs.\ $0.68$), it does so by over-forecasting and still trails every observation-driven nowcast. The result is likewise not specific to the CAMS model family: for an independent NASA MERRA-2 reanalysis (finer resolution), bias-corrected \pmten{} reconstruction scenarios span $26$--$101$~\ugm{} across coarse-dust treatments. The most favourable scenario outperforms raw CAMS and is modestly better than bias-corrected CAMS ($25.9$ vs.\ $30.3$~\ugm), but it remains roughly twice the observation-driven nowcast ($13$~\ugm; Methods; SI, Table~S19). Second, the observation-driven advantage is present in every national network sampled: for \pmtf{}, Chronos-2 lowers MAE over CAMS at each of the four countries and both coasts, by $20\%$ (Jeddah, Red Sea) to $54\%$ (Dhahran) (Table~S15). The headline is thus not an artefact of the reanalysis product or of a single national network, though a fully external region and season outside the Arabian Peninsula remains the strongest outstanding test.
+
+\section{Atmospheric interpretation: why the observation stream dominates}
+The pattern of wins and losses is physically coherent rather than a generic machine-learning artefact, and it says something about the pollution problem itself. Gulf \pmten{} is dominated by episodic, coarse-mode mineral dust whose emission is strongly influenced by surface wind gusts (including Shamal events (Yu et al., 2016)), soil state and land use at scales far below an $0.75^\circ$ grid cell (Draxler et al., 2001; Gandham and Hoteit, 2020), so a global CTM inherits a structural under-prediction of coarse dust at monitors (network-mean bias $-23.6$~\ugm{} here, with the largest deficits at urban and roadside sites) that assimilation of column aerosol optical depth does not, by itself, constrain at the surface (Inness et al., 2019; R\'emy et al., 2019); part of this deficit is also a documented property of the EAC4 \pmten{} diagnostic, whose dust representation truncates the coarsest size modes, and regional evaluations over the Middle East report a similar surface shortfall for the global assimilation products (R\'emy et al., 2019; Ukhov et al., 2020). \pmtf{}, by contrast, is over-predicted (all five sites positive, up to $+36.9$~\ugm{}), a bias to which several mechanisms can plausibly contribute, among them anthropogenic-emission uncertainty and over-represented sea salt at these coastal sites, though our data do not resolve their relative shares. Aerosol water is not among them: the IFS-AER particulate diagnostic is defined on a dry basis, with sea-salt mass converted from its 80\% relative-humidity reference before summation (R\'emy et al., 2019). Whatever the mechanism split, the resulting sign reversal between pollutants defeats any single blanket correction. At the same time, dust loading during an event is strongly autocorrelated over hours: once a plume is over a station, its own recent record is the best available predictor of the next 3--24~h, which is why persistence captures most of the observation-driven skill and why the advantage decays with lead time as that autocorrelation fades. The regime map is therefore an atmospheric statement as much as a methodological one: the CTM field retains information where local memory is weakest, at abrupt \pmtf{} extremes arriving by transport, at unmonitored locations and (in principle) at episode onset. It is redundant where the coarse-dust signal the model cannot resolve is already written into the local observation stream.
+
+
+\section{Learner sensitivity: is the verdict a property of one model?}
+The audit above uses a single histogram gradient-boosting regressor. A reviewer of an
+earlier version asked whether its verdict is a property of that learner rather than of the
+design, so we repeated the full-control ladder with four learners spanning a wide capacity
+range: the reported gradient boosting at depth 6, the same at depth 2, a 200-tree random
+forest, and ridge regression on standardised features with a cross-validated penalty.
+Every learner is deterministic (early stopping off, fixed \texttt{random\_state}, and
+\texttt{n\_jobs}~$=1$ for the forest so that the result does not depend on thread count),
+and the depth-6 rows reproduce the values in Table~S6 to the last reported digit, which is
+also our execution check on the reimplementation.
+
+Two questions have to be kept apart here, and an earlier version of this supplement ran them
+together. The first is whether each learner, on its own, reproduces a positive transfer verdict.
+The second is whether the learners differ from one another. Answering the second by inspecting
+whether each learner's separate interval excludes zero is the error this manuscript objects to
+elsewhere (Gelman and Stern, 2006), and we had committed it here. The four learners are fitted on
+the same 19 stations, so the difference between two of them is directly testable, paired by station.
+
+\textbf{Verdict reproducibility.} At a 100~km buffer the \emph{coordinate-free} median gain is
+positive with a bootstrap interval excluding zero under all four learners ($+11.4$, $+14.5$,
+$+12.2$, $+17.9$\%), and the coordinate-bearing pooled gain is negative under all four ($-3.6$,
+$-9.1$, $-21.5$, $-11.9$\%) with a worst station between $-104$ and $-247$\% against $-54$ to
+$-77$\% coordinate-free. The coordinate-bearing \emph{median} gain stays positive under all four
+but its interval excludes zero only for the reported depth-6 model ($+7.9\%$ $[+2.4,+12.2]$); for
+the other three it spans zero. The coordinate-free positive verdict is therefore reproduced by every
+learner tested, and the coordinate-bearing one is not reproduced outside the reported model. That is
+the statement a practitioner inherits on choosing a learner, and it is the statement the manuscript
+makes.
+
+\textbf{Whether the learners themselves differ.} Tested properly --- paired Wilcoxon on the
+per-station gains against the depth-6 model, Benjamini--Hochberg across the three comparisons --- the
+answer inverts the impression the intervals give. For the coordinate-bearing specification no learner
+differs from the reported one (median paired differences $+2.9$, $-0.9$ and $-5.5$ percentage points;
+$p=0.13$, $0.54$, $0.89$; every $q>0.40$). We therefore do \emph{not} claim that the coordinate-bearing
+central estimate depends on the learner; what we claim, and all we claim, is that its verdict against
+zero is not reproduced. For the coordinate-free specification one difference is detectable: ridge
+returns a larger gain than the depth-6 tree, a median paired difference of $-4.6$ percentage points
+with 17 of 19 stations higher under ridge ($p=7\times10^{-5}$, $q=0.0002$), while the depth-2 tree and
+the random forest do not differ ($q=0.12$ and $0.33$). Its direction reinforces the reported verdict
+rather than threatening it. Ridge is instructive for a separate reason: it is the one learner that
+cannot memorise a station identity in the tree sense, and it shows the same coordinate-bearing
+collapse, which locates the mechanism in extrapolation beyond the training coordinate hull rather
+than in tree capacity. The paired comparisons are in \texttt{empirical\_learner\_paired.csv}.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Learner sensitivity of the audit (full control: distance buffer $+$ time blocks $+$ guard band).} Pooled and median per-station gain over raw CAMS, with the station cluster-bootstrap 95\% interval on the median (2000 resamples), the win count, and the single worst station. ``Reported'' marks the learner used everywhere else in the manuscript; its four rows reproduce Table~S6 to the last reported digit.}
+\begin{tabular}{lccccc}\toprule
+Learner & Pooled (\%) & Median (\%) & Median 95\% CI & Win & Worst station (\%) \\ \midrule
+\multicolumn{6}{l}{\textit{buffer $R=0$~km, with lat/lon}} \\
+Gradient boosting, depth 6 (reported) & +16.5 & +14.4 & [+6.7, +26.5] & 17/19 & -20.0 \\
+Gradient boosting, depth 2 & +20.2 & +23.2 & [+14.6, +31.6] & 16/19 & -30.5 \\
+Random forest, 200 trees & +16.1 & +17.8 & [+9.3, +23.3] & 18/19 & -22.0 \\
+Ridge regression (standardised, CV-selected $\alpha$) & +20.8 & +22.2 & [+12.1, +30.7] & 16/19 & -41.4 \\
+\multicolumn{6}{l}{\textit{buffer $R=0$~km, coordinate-free}} \\
+Gradient boosting, depth 6 (reported) & +16.8 & +16.7 & [+7.2, +24.8] & 16/19 & -49.1 \\
+Gradient boosting, depth 2 & +20.5 & +21.9 & [+17.8, +26.5] & 16/19 & -45.9 \\
+Random forest, 200 trees & +15.4 & +15.2 & [+3.3, +23.7] & 16/19 & -44.2 \\
+Ridge regression (standardised, CV-selected $\alpha$) & +21.5 & +22.6 & [+17.3, +32.5] & 16/19 & -33.7 \\
+\multicolumn{6}{l}{\textit{buffer $R=100$~km, with lat/lon}} \\
+Gradient boosting, depth 6 (reported) & -3.6 & +7.9 & [+2.4, +12.2] & 15/19 & -125.2 \\
+Gradient boosting, depth 2 & -9.1 & +2.1 & [-31.2, +11.3] & 10/19 & -103.8 \\
+Random forest, 200 trees & -21.5 & +6.4 & [-52.5, +16.1] & 12/19 & -247.3 \\
+Ridge regression (standardised, CV-selected $\alpha$) & -11.9 & +6.4 & [-73.2, +20.1] & 10/19 & -135.3 \\
+\multicolumn{6}{l}{\textit{buffer $R=100$~km, coordinate-free}} \\
+Gradient boosting, depth 6 (reported) & +10.2 & +11.4 & [+7.0, +20.3] & 15/19 & -77.2 \\
+Gradient boosting, depth 2 & +12.0 & +14.5 & [+6.9, +19.1] & 16/19 & -67.0 \\
+Random forest, 200 trees & +10.7 & +12.2 & [+6.6, +19.0] & 16/19 & -68.4 \\
+Ridge regression (standardised, CV-selected $\alpha$) & +15.3 & +17.9 & [+13.6, +23.4] & 16/19 & -54.1 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{FigS2.png}
+\caption{\textbf{Detection, separated by threshold type.} This figure supports the benchmark arm and is placed here so the main text can carry the audit. (a) \pmten{} probability of detection (POD) for a \emph{formal WHO 24-h mean} guideline exceedance ($\geq45$~\ugm) and for a severe short-duration 3-h dust tier ($\geq150$~\ugm; an operational, not health, threshold): the CAMS reanalysis detects about seven in ten 24-h guideline days and only $6\%$ of severe 3-h dust episodes, whereas observation-driven nowcasts detect nearly all guideline days and about two-thirds of severe episodes. (b) Corresponding critical success index (CSI), with station cluster-bootstrap 95\% intervals. (c) Three-hourly detection POD versus lead time. (d) \pmtf{}: the 24-h guideline is exceeded almost ubiquitously and saturates detection, and no method reliably flags rare severe 3-h \pmtf{} spikes. Persistence matches the foundation model throughout.}
+\label{fig:si_alerts}
+\end{figure}
+
+\section{Does the grid-cell stage depend on where the CAMS grid origin sits?}
+The third control withholds every source station sharing the target's $0.75^\circ$ CAMS
+cell, because such stations carry an identical covariate series. Which stations share a
+cell is a property of the grid, and the grid's origin belongs to the CAMS product rather
+than to the atmosphere. A reviewer asked whether the control is doing something real or is
+an artefact of where the cell boundaries happen to fall relative to this cluster of
+stations, so we shifted the grid origin over a lattice of offsets and repeated the audit
+at the two radii that bracket the argument.
+
+Table~S33 gives the result. Shifting the origin changes the partition substantially --- the
+number of occupied cells moves between six and nine, and the number of station pairs
+sharing a cell between 15 and 31, so at the least favourable offset twice as many pairs are
+treated as covariate-sharing as at the grid we use. The verdict does not move with it. At
+$R=0$ the median $\Delta$ spans $+0.073$ to $+0.132$ across the seven offsets, a range of
+$0.058$ log units, which is a fifth of the width of the block-bootstrap interval on any one
+of them, and the win count stays between 10 and 13 of 19. At $R=100$~km every offset returns
+the identical median $+0.034$ and the identical 10 of 19: once the buffer exceeds 100~km no
+surviving source shares a cell with its target under any origin, so the cell stage is inert
+there by construction. That is the quantitative form of the statement in the main text that
+the grid-cell stage binds only at narrow radii, and it follows from the cell size and the
+buffer without any fitting.
+
+The stage is therefore not an artefact of the grid, and neither is it doing the work that
+carries the paper's conclusion: no offset produces a significant transfer gain at either
+radius. What it removes is a specific and identifiable confound at narrow buffers, and it
+should be reported for the same reason the buffer is.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Grid-origin sensitivity of the leave-one-grid-cell-out stage.} The origin of the $0.75^\circ$ grid is shifted by the stated fraction of a cell in latitude and longitude; $(0,0)$ is the CAMS grid the manuscript uses. ``Pairs'' counts station pairs assigned to the same cell, out of 171. $\Delta$ is the median log error ratio for the coordinate-bearing specification under the full control with a ten-day guard and quantile blocks.}
+\begin{tabular}{ccccccc}\toprule
+\multicolumn{2}{c}{Origin offset} & \multirow{2}{*}{Cells} & \multirow{2}{*}{Pairs} & \multicolumn{2}{c}{$R=0$} & $R=100$~km \\
+lat & lon & & & median $\Delta$ & wins & median $\Delta$ (wins) \\ \midrule
+$0$ & $0$ & 9 & 15 & $+0.132$ & 13/19 & $+0.034$ (10/19) \\
+$0$ & $-0.25$ & 8 & 19 & $+0.092$ & 12/19 & $+0.034$ (10/19) \\
+$-0.25$ & $-0.25$ & 6 & 27 & $+0.073$ & 10/19 & $+0.034$ (10/19) \\
+$-0.25$ & $-0.50$ & 7 & 31 & $+0.073$ & 12/19 & $+0.034$ (10/19) \\
+$-0.50$ & $0$ & 8 & 24 & $+0.098$ & 12/19 & $+0.034$ (10/19) \\
+$-0.50$ & $-0.25$ & 8 & 24 & $+0.086$ & 11/19 & $+0.034$ (10/19) \\
+$-0.50$ & $-0.50$ & 9 & 28 & $+0.106$ & 13/19 & $+0.034$ (10/19) \\ \midrule
+\multicolumn{4}{l}{\textit{range across offsets}} & $0.058$ & 10--13 & $0.000$ (10--10) \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Relation to nearest-neighbour distance matching and to the area of applicability}
+Two instruments from this literature were suggested to us as alternatives to a buffer
+ladder: nearest-neighbour distance matching cross-validation (NNDM and its $k$-means
+variant kNNDM) and the area of applicability (AOA) with its dissimilarity index (DI). We
+computed both on these data. They do not replace the ladder; they explain what the ladder
+is doing and they corroborate its verdict from a different direction.
+
+NNDM asks that the distance from a cross-validation test point to its nearest training
+point match the distance from a prediction location to its nearest training point, so that
+the validation answers the question the deployment poses. Table~S26 gives both
+distributions for our design. At zero buffer the two coincide (median 6.5~km each,
+Wasserstein-1 distance 0.9~km): plain leave-one-station-out over this network validates
+\emph{interpolation between neighbours 6.5~km apart}, which is why an unbuffered cold-start
+number cannot speak to an unmonitored site. The buffer moves the test-to-train distance to
+43, 74 and 108~km while the training set's own internal spacing stays near 7~km. A kNNDM
+fold assignment would select one point on that curve, the one matching a nominated
+prediction geometry; the buffer ladder reports the whole curve, and a deployment
+rule expressed in kilometres requires the whole curve, since ``how far is my unmonitored site from the
+nearest monitor'' is a design variable and not a fixed property of the network.
+
+That said, the prediction geometry can be measured rather than nominated, and doing so
+locates the ladder against the deployment this paper is about. Drawing $20{,}000$ locations
+uniformly from the network's bounding box and taking each one's distance to the nearest
+monitor gives a median of $35.0$~km (interquartile range $22.0$ to $50.0$, maximum
+$101.2$): that is what an unmonitored site in this region is actually like. Against it,
+plain leave-one-station-out at $6.5$~km is optimistic by $28.5$~km in the median. Every
+design we audit is at least as demanding as deployment: with the grid-cell stage in place,
+the median distance from a target to its nearest surviving source is $48.3$~km at zero
+buffer, $62.7$~km at 25~km, $73.7$~km at 50~km, $84.0$~km at 75~km and $108.1$~km at
+100~km. The deployment geometry therefore falls below the narrowest rung of the ladder,
+so the ladder brackets it rather than approximating it, and the fold assignment a kNNDM
+search would return lies inside the range we already report. We ran the distance
+diagnostic and not the search because the search selects one rung and we need the curve;
+the assignment space is not the obstacle (with 19 stations and six folds it holds
+$6.9\times10^{11}$ partitions).
+
+The AOA asks a complementary question in feature space rather than in geographic space:
+whether a prediction location is similar enough to the training data for the model's
+cross-validation error to apply to it. We computed the DI as the minimum standardised
+Euclidean feature distance from each target point to the source-station training set,
+normalised by the mean nearest-neighbour distance within that training set, with the
+threshold set at the $0.75$ quantile plus $1.5$ interquartile ranges of the training DI.
+(We use unweighted standardised features rather than importance-weighted ones. For the
+coordinate-bearing specification this is the conservative direction and the conclusion is
+safe under either choice: weighting by permutation importance can only raise the weight on
+features the model relies on, and the coordinate-bearing targets are already wholly outside
+the area of applicability unweighted. For the coordinate-free specification the direction is
+not determined, since weighting merely redistributes among the remaining features, and we do
+not claim one.) The result, Table~S27, is a direct and independent statement of
+the reliability finding: with coordinates, every one of the 19 targets at a 100~km buffer
+lies wholly outside the area of applicability (median DI $6.8$), whereas the
+coordinate-free specification keeps $89.5\%$ of target points inside it (median DI $1.2$)
+and no station predominantly outside. An AOA analysis would therefore have refused to
+issue the coordinate-bearing buffered prediction at all, which agrees with our conclusion
+that the coordinate-bearing correction is not the one to deploy, and reaches it without
+using any outcome data.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Nearest-neighbour distance structure of the buffer ladder.} For each buffer radius: the distance from each target station to its nearest surviving source station (the sample-to-prediction distance that a cold-start deployment faces), the nearest-neighbour distance \emph{within} the surviving source set, and the Wasserstein-1 distance between the two distributions, which is the quantity kNNDM minimises. At $R=0$ the two distributions coincide, so unbuffered leave-one-station-out validates interpolation.}
+\begin{tabular}{ccccc}\toprule
+$R$ (km) & Target-to-source NN, median (km) & IQR & Within-source NN, median (km) & $W_1$ (km) \\ \midrule
+0 & 6.5 & [5.9, 28.9] & 6.5 & 0.9 \\
+25 & 43.3 & [32.1, 56.6] & 7.0 & 26.3 \\
+50 & 73.7 & [69.8, 77.0] & 7.0 & 51.6 \\
+100 & 108.1 & [104.6, 109.0] & 7.0 & 86.6 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Area of applicability of the cold-start correction.} Dissimilarity index (DI) of each target station's prediction points relative to its source-station training set, and the share falling outside the area of applicability (DI above the training threshold). ``Stations mostly outside'' counts targets for which more than half the prediction points fall outside. With coordinates at a 100~km buffer the correction is inadmissible everywhere by this criterion; the coordinate-free specification is admissible almost everywhere.}
+\begin{tabular}{lcccc}\toprule
+Feature set & $R$ (km) & Median DI & Points outside AOA (\%) & Stations mostly outside \\ \midrule
+with lat/lon & 0 & 0.83 & 33.7 & 6/19 \\
+with lat/lon & 100 & 6.76 & 100.0 & 19/19 \\
+coordinate-free & 0 & 0.50 & 4.4 & 0/19 \\
+coordinate-free & 100 & 1.23 & 10.5 & 0/19 \\
+\bottomrule\end{tabular}\end{table}
+
+
+\section{Number-to-source audit}
+An earlier version of this manuscript quoted an equitable threat score of $0.72$--$0.75$
+for the observation-driven nowcasts where the computed value is $0.53$--$0.56$; One of those
+two figures is the Heidke skill score of the same contingency tables ($0.717$ for
+persistence); the other corresponds to no column of any table we computed. We found it by
+checking the reported numbers against the artefacts by hand, and we have since automated
+as much of that check as can be automated. The script \texttt{number\_audit.py} indexes
+every numeric value in the computed artefacts (all result JSON files, the aligned station
+records and the per-point tables, each also carried across the percentage/log-ratio
+transform), extracts every numeric literal in the manuscript, the supplement and the cover
+letter together with the sentence containing it, and reports the ones no artefact holds.
+Roughly $95\%$ of the empirical literals match an artefact automatically. The remaining
+few dozen are quantities defined in text rather than computed --- station identifiers,
+publication years, page numbers, sentinel codes, fixed hyperparameters, values quoted from
+the cited literature rather than produced here, and sample counts
+belonging to arms whose intermediate artefacts are not in the audited directory --- and
+they are listed with their context in
+\texttt{number\_audit\_unmatched.csv} for manual review, which we have carried out. We
+give the proportion rather than the counts deliberately: the audit runs over the
+manuscript itself, so any edit changes the totals, and a count printed here would be stale
+the moment the sentence containing it was written. The exact figures for a given build are
+in the two CSV files, which are regenerated with the manuscript.
+
+We state the limitation plainly, because it bounds what the audit can conclude. A value-presence
+check cannot catch a number quoted from the wrong column: $0.72$ is a real Heidke skill
+score in our own tables, so an automated index would have accepted it. What catches that
+class of error is the context column, read by a person against the table the sentence
+cites. The audit narrows the reading list by about six sevenths; it does not replace the
+reading. Both files are in the repository.
+
+
+\section{Which specification survives, and why the three inference units agree once the comparison is paired}
+At a 100~km buffer under the full three-fold control, neither feature set establishes a
+transfer gain on its own. The coordinate-bearing specification has a median
+$\Delta=+0.034$ across 19 stations, improves 10 of them, and clears neither test after
+correction (sign $q=1.00$, Wilcoxon $q=0.41$); the coordinate-free specification has
+$\Delta=+0.087$, improves 11, and likewise clears neither ($q=0.78$ and $q=0.77$). The
+block-bootstrap interval over the nine covariate cells spans zero for both
+($[-0.618,+0.191]$ and $[-0.162,+0.244]$). Table~S28 sets the two side by side under each
+of the three inference units that are defensible here.
+
+An earlier version of this analysis went on to select between the two specifications by
+asking which of them cleared a threshold against zero under each unit, and reported that
+the three units disagreed. That comparison is not valid: the difference between
+significant and not significant is not itself significant (Gelman and Stern, 2006). What the
+question requires is the paired difference
+$\Delta_{\text{coordinate-free}}-\Delta_{\text{coordinate-bearing}}$, taken station by
+station over the same folds. Under that test the three units do not disagree. The
+coordinate-free specification is ahead at 13 of the 19 stations (sign test $p=0.167$,
+Wilcoxon $p=0.036$, $d_z=0.46$), ahead in 7 of the 9 cells ($p=0.180$), and the
+block-bootstrap interval on the paired difference is $[-0.000,+0.601]$ against
+$[-0.000,+0.567]$ for the station bootstrap. All three point the same way and none of them
+separates the two specifications at zero buffer (11 of 19, $p=0.648$). The apparent
+disagreement was an artefact of the comparison, not a property of the units.
+
+What the units do change is how much weight a spatially coherent failure carries, and that
+remains worth reporting. Table~S29 resolves $\Delta$ by cell. Under the coordinate-bearing
+specification the four stations of the eastern-edge cell $24.00^\circ$N$/55.50^\circ$E fail
+together and fail hard ($-1.16$, $-1.14$, $-1.14$, $-0.43$; cell median $-1.14$), which is
+what extrapolation beyond the region the surviving sources span should look like. The same
+four stations under the coordinate-free specification give $-0.22$, $-0.16$, $-0.08$ and
+$+0.14$, a cell median of $-0.12$. Failures are not confined to that cell in either
+specification --- 5 of 9 cells have a negative median with coordinates and 4 of 9 without
+--- but the four largest failures in the whole design are the coordinate-bearing ones in
+that single cell. A station-level error bar counts that coherent failure four times, a
+cell median counts it once, and a cell block bootstrap counts it between zero and four
+times depending on the draw. With 19 stations in 9 cells no one of the three resolves this,
+and we do not claim that one does; we report all three because they are cheap to report
+together and because a single one of them, quoted alone, is how an audit certifies a
+transfer result it should not.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{The two feature sets under three inference units (100~km buffer, full three-fold control), and the paired comparison between them.} The upper block gives each specification against zero, which is what an earlier version compared; the lower block gives the paired difference, which is the comparison the question actually requires. $q$ values are Benjamini--Hochberg corrected across the 24 buffer $\times$ feature-set $\times$ design cells of Table~S6, with the sign test and the Wilcoxon test corrected as separate families; The paired block gives both the uncorrected $p$ and the Benjamini--Hochberg $q$ across the four buffer radii at which the paired contrast is run, so that it receives the same treatment as the tests against zero; no cell of the paired family reaches $q<0.05$.}
+\begin{tabular}{lccc}\toprule
+Quantity & With lat/lon & Coordinate-free & Separates them? \\ \midrule
+\multicolumn{4}{l}{\textit{(i) each specification against zero, stations as 19 units}} \\
+median $\Delta$ & $+0.034$ & $+0.087$ & no \\
+\quad stations improving & 10/19 & 11/19 & no \\
+\quad sign test $q$ & 1.00 & 0.78 & neither passes \\
+\quad Wilcoxon $q$ & 0.41 & 0.77 & neither passes \\
+\multicolumn{4}{l}{\textit{(ii) each specification against zero, nine cell medians as units}} \\
+median of cell medians & $-0.059$ & $+0.154$ & no \\
+\quad cells improving & 4/9 & 5/9 & no \\
+\multicolumn{4}{l}{\textit{(iii) each specification against zero, block bootstrap over nine cells}} \\
+median $\Delta$, 95\% CI & $[-0.618,+0.191]$ & $[-0.162,+0.244]$ & neither excludes zero \\ \midrule
+\multicolumn{4}{l}{\textit{(iv) paired difference, coordinate-free minus coordinate-bearing}} \\
+median paired difference & \multicolumn{2}{c}{$+0.030$} & --- \\
+\quad stations favouring coordinate-free & \multicolumn{2}{c}{13/19 ($p=0.167$, $q=0.223$)} & --- \\
+\quad Wilcoxon $p$, $q$, $d_z$ & \multicolumn{2}{c}{$0.036$, \; $0.144$, \; $0.46$} & --- \\
+\quad cells favouring coordinate-free & \multicolumn{2}{c}{7/9 ($p=0.180$)} & --- \\
+\quad station bootstrap 95\% CI & \multicolumn{2}{c}{$[-0.000,+0.567]$} & --- \\
+\quad cell block bootstrap 95\% CI & \multicolumn{2}{c}{$[-0.000,+0.601]$} & --- \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{The paired comparison across the buffer ladder, corrected as a family.} The paired contrast $\Delta_{\text{coordinate-free}}-\Delta_{\text{coordinate-bearing}}$ is run at each of the four radii, so it is a family of four and is corrected as one. The direction is consistent from 25~km outward --- 13 to 15 of 19 stations and 7 of 9 cells favour the coordinate-free specification at every radius beyond zero --- but no cell reaches $q<0.05$ under either test. We report the pattern and not a difference.}
+\begin{tabular}{lccccc}\toprule
+Radius & Stations favouring & Cells favouring & Sign $p$ ($q$) & Wilcoxon $p$ ($q$) \\
+ & coordinate-free & coordinate-free & & \\ \midrule
+0~km & 11/19 & 5/9 & 0.648 (0.648) & 0.738 (0.738) \\
+25~km & 15/19 & 7/9 & 0.019 (0.077) & 0.113 (0.151) \\
+50~km & 14/19 & 7/9 & 0.064 (0.127) & 0.096 (0.151) \\
+100~km & 13/19 & 7/9 & 0.167 (0.223) & 0.036 (0.144) \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Cell-resolved transfer gain at a 100~km buffer under the full control.} Median $\Delta$ of the stations in each $0.75^\circ$ CAMS cell, ordered by the coordinate-bearing value. Negative medians occur in five of the nine cells with coordinates and four without, but the four largest failures in the design are the coordinate-bearing ones in the eastern-edge cell, whose four stations fail together. This is the structure a station-level error bar cannot represent.}
+\begin{tabular}{lccc}\toprule
+Cell & Stations & With lat/lon & Coordinate-free \\ \midrule
+24.00N/55.50E & 4 & $-1.140$ & $-0.120$ \\
+23.25N/53.25E & 1 & $-0.805$ & $-0.204$ \\
+24.00N/52.50E & 2 & $-0.439$ & $-0.269$ \\
+24.75N/55.50E & 1 & $-0.293$ & $+0.699$ \\
+23.25N/55.50E & 1 & $-0.059$ & $+0.154$ \\
+24.00N/54.00E & 3 & $+0.079$ & $-0.531$ \\
+24.00N/54.75E & 3 & $+0.154$ & $+0.154$ \\
+24.75N/54.00E & 2 & $+0.209$ & $+0.259$ \\
+24.75N/54.75E & 2 & $+0.231$ & $+0.239$ \\
+\bottomrule\end{tabular}\end{table}
+
+\section{Three conventions inside the audit: the guard band, the block boundaries, and the flat-line control}
+Three choices inside the temporal control were made by convention in an earlier version of
+this analysis. Each is reported here with the measurement that should have set it.
+
+\textbf{The guard band.} Three days was chosen to exceed the duration of a synoptic dust
+episode. That is a statement about the physics, not about the residual field the audit
+actually blocks. Table~S30 gives the median across stations of the lag autocorrelation of
+the observation-minus-CAMS residual. It is $+0.87$ at three hours and falls below $1/e$
+within a day, but it does not continue to decay: it plateaus near $+0.20$ from two days
+out to a week and reaches $+0.08$ only at ten days. The plateau is a seasonal and synoptic
+background rather than episode persistence, and it is what a guard band has to clear. We
+set the guard at ten days and report three days alongside it in Table~S6.
+
+\textbf{The block boundaries.} Calendar-equal blocks are only equal in time. This record
+has no observations at all in four months of 2023, so calendar blocks leave three of the
+six folds nearly empty at every station: at station 369959, for instance, they held 218,
+9, 4, 7, 335 and 489 points. Across the 19 stations the smallest calendar fold holds 4
+points and the largest 517, and the median within-station ratio of largest to smallest
+fold is $124$ (range 113 to 129) --- a nominal six-fold control that is three-fold in
+substance. Blocks taken at quantiles of each target's own timestamps hold 170 to 190
+points across all stations and folds, a within-station imbalance ratio of $1.01$.
+
+\textbf{The flat-line control.} Station 369963 reports exactly $80$~\ugm{} for 51
+consecutive three-hourly steps, and $15.5\%$ of all observations repeat the previous
+value. Two mechanisms produce repeats and they are separable by concentration (Table~S31).
+The record is integer-valued with a median absolute step of $3$~\ugm{}, so exact ties are
+expected wherever concentrations are low: ties of that kind should sit below the network
+median of $74$~\ugm{} and be depleted in values above $100$~\ugm{}, and they are. Runs of
+two to ten steps have median values of $51$ to $65$ and only $9$ to $20\%$ of them exceed
+$100$~\ugm{}, against $29\%$ for the record as a whole. A latched sensor has no such
+signature and can run far longer than any calm spell, and the two longest runs
+(51 and 22 steps, $153$ and $66$ hours) look like that. We therefore remove runs of six or more
+identical consecutive values, which is $1.2\%$ of the record across 12 stations, and
+report a threshold of three as sensitivity.
+
+The sensitivity matters, and it is the third of the three conventions this paper is about.
+A threshold of three deletes $9.9\%$ of the record, and what it deletes is not a random
+sample: the removed observations have a median of $60$~\ugm{} against the network's $74$,
+and only $9.8\%$ of them exceed $100$~\ugm{} against $28.5\%$ of the record. Removing them
+raises the retained mean absolute CAMS error from $46.6$ to $48.4$~\ugm{} and the retained
+median concentration from $74.5$ to $77.0$. A residual correction has more room to help in
+a higher-error regime, and under the aggressive threshold the coordinate-free specification
+becomes significant again at zero buffer ($q=0.011$) and at 100~km ($q=0.035$), where under
+the conservative threshold nothing clears correction anywhere ($q\geq0.251$). The paired
+comparison moves in the same way, from 13 of 19 stations favouring the coordinate-free
+specification at 100~km under the conservative rule (Wilcoxon $p=0.036$) to 10 of 19 under
+the aggressive one ($p=0.123$). We read this as the threshold creating a gain rather
+than revealing one, and we report both so a reader can disagree.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Residual autocorrelation by lag, which sets the guard band.} Median across the 19 stations of the lag autocorrelation of the observation-minus-CAMS residual, on the three-hourly grid with gaps reindexed. The decay is not monotone: a synoptic plateau near $+0.2$ persists from two days to a week before the correlation reaches $+0.08$ at ten days.}
+\begin{tabular}{ccc}\toprule
+Lag (h) & Lag (days) & Median autocorrelation \\ \midrule
+3 & 0.12 & +0.870 \\
+6 & 0.25 & +0.715 \\
+12 & 0.50 & +0.497 \\
+24 & 1.00 & +0.314 \\
+48 & 2.00 & +0.177 \\
+72 & 3.00 & +0.195 \\
+96 & 4.00 & +0.224 \\
+120 & 5.00 & +0.188 \\
+168 & 7.00 & +0.241 \\
+240 & 10.00 & +0.081 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Repeated values separate by concentration.} For each run length of identical consecutive observations: the number of such runs, the median concentration at which they occur, and the share exceeding $100$~\ugm{}. Runs up to ten steps sit below the network median and are depleted in high values, which is the signature of integer reporting at a median step of $3$~\ugm{}; a latched instrument would carry no such signature. The two runs of eleven or more steps are treated as faults.}
+\begin{tabular}{cccc}\toprule
+Run length & Runs & Median value (\ugm) & Share above $100$~\ugm \\ \midrule
+2 & 1736 & 65 & 20\% \\
+3 & 398 & 59 & 9\% \\
+4-5 & 145 & 61 & 10\% \\
+6-10 & 26 & 52 & 15\% \\
+11+ & 2 & 51 & 0\% \\
+\midrule
+whole record & n/a & 74 & 29\% \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{The paired comparison between feature sets.} The difference $\Delta_{\text{coordinate-free}}-\Delta_{\text{coordinate-bearing}}$ on the stations both specifications predict, under the ten-day guard. This is the comparison the manuscript reports, in place of contrasting each specification's separate verdict against zero, which is not a comparison of the two (Gelman and Stern, 2006). Positive favours the coordinate-free specification. The cell columns take the nine covariate-cell medians as the units.}
+\begin{tabular}{ccccccc}\toprule
+$R$ (km) & Stations & Sign $p$ & Wilcoxon $p$ & Cells & Cell sign $p$ & Cell-block 95\% CI \\ \midrule
+\multicolumn{7}{l}{\textit{distance buffer only}} \\
+0 & 8/19 & 0.648 & 0.891 & 5/9 & 1.000 & [-0.085, +0.140] \\
+25 & 13/19 & 0.167 & 0.134 & 7/9 & 0.180 & [-0.037, +0.390] \\
+50 & 13/19 & 0.167 & 0.040 & 7/9 & 0.180 & [-0.055, +0.500] \\
+100 & 14/19 & 0.064 & 0.026 & 7/9 & 0.180 & [+0.007, +0.997] \\
+\multicolumn{7}{l}{\textit{buffer $+$ time blocks}} \\
+0 & 7/19 & 0.359 & 0.352 & 4/9 & 1.000 & [-0.108, +0.046] \\
+25 & 15/19 & 0.019 & 0.080 & 7/9 & 0.180 & [-0.045, +0.148] \\
+50 & 14/19 & 0.064 & 0.096 & 7/9 & 0.180 & [-0.052, +0.514] \\
+100 & 13/19 & 0.167 & 0.036 & 7/9 & 0.180 & [-0.007, +0.601] \\
+\multicolumn{7}{l}{\textit{buffer $+$ time $+$ leave-one-grid-cell-out}} \\
+0 & 11/19 & 0.648 & 0.738 & 5/9 & 1.000 & [-0.052, +0.206] \\
+25 & 15/19 & 0.019 & 0.113 & 7/9 & 0.180 & [-0.052, +0.148] \\
+50 & 14/19 & 0.064 & 0.096 & 7/9 & 0.180 & [-0.052, +0.514] \\
+100 & 13/19 & 0.167 & 0.036 & 7/9 & 0.180 & [-0.000, +0.601] \\
+\bottomrule\end{tabular}\end{table}
+
+\clearpage
+\section{Ground-truth stochastic experiment: full results}
+The tables in this section report the 32-scenario factorial experiment of Section~2.6 in full.
+Each cell aggregates 16 scenarios $\times$ 100 replicates $=1{,}600$ realizations. Under
+$\beta=0$ a positive transfer verdict is a false positive; under $\beta=1$ it is a true
+detection. Verdict rates are percentages and $\tilde\Delta$ is the median across realizations of
+the per-realization median station-level $\Delta=\log(\mathrm{MAE_{raw}/MAE_{transfer}})$.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{The validation ladder under known ground truth, at all three pre-declared buffer radii.} Each rung adds one control to the rung above it. Every cell is 1{,}600 realizations. The false-positive rate falls by an order of magnitude between the buffer rung and the time-guard rung, and barely moves thereafter; detection falls at every rung and falls further for the coordinate-bearing specification as the buffer widens. At $R=100$~km the grid-cell rung is exactly redundant, because the buffer has already removed every same-cell source.}
+\begin{tabular}{llrrrrrr}\toprule
+& & \multicolumn{4}{c}{$\beta=0$: false-positive verdict rate (\%)} & \multicolumn{2}{c}{$\beta=1$: detection (\%)}\\
+\cmidrule(lr){3-6}\cmidrule(lr){7-8}
+$R$ & Specification & station & $+$buffer & $+$time & $+$cell & station & full audit \\ \midrule
+25 & coordinate-free & 20.00 & 16.69 & 2.50 & 2.31 & 77.94 & 36.81 \\
+ & coordinate-bearing & 29.50 & 17.56 & 3.69 & 2.94 & 79.56 & 27.81 \\
+\addlinespace
+50 & coordinate-free & 20.00 & 16.56 & 2.75 & 2.69 & 77.94 & 36.69 \\
+ & coordinate-bearing & 29.50 & 13.56 & 2.88 & 2.44 & 79.56 & 25.69 \\
+\addlinespace
+100 & coordinate-free & 20.00 & 15.56 & 2.62 & 2.62 & 77.94 & 35.31 \\
+ & coordinate-bearing & 29.50 & 10.62 & 2.06 & 2.06 & 79.56 & 22.50 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Median transfer estimand $\tilde\Delta$ along the same ladder.} The verdict rule requires both $\tilde\Delta>0$ and a one-sided sign test, so the estimand is reported separately from the verdict rate. Under $\beta=0$ the full audit drives $\tilde\Delta$ increasingly negative as the buffer widens, which is the expected behaviour when a correction is transferred to a location it carries no information about.}
+\begin{tabular}{llrrrrrrrr}\toprule
+& & \multicolumn{4}{c}{$\beta=0$} & \multicolumn{4}{c}{$\beta=1$}\\
+\cmidrule(lr){3-6}\cmidrule(lr){7-10}
+$R$ & Specification & station & $+$buffer & $+$time & $+$cell & station & $+$buffer & $+$time & $+$cell \\ \midrule
+25 & coordinate-free & $+0.0115$ & $-0.0019$ & $-0.1028$ & $-0.1056$ & $+0.2426$ & $+0.2031$ & $+0.0977$ & $+0.0916$ \\
+ & coordinate-bearing & $+0.0556$ & $-0.0035$ & $-0.0966$ & $-0.1560$ & $+0.2971$ & $+0.2012$ & $+0.0795$ & $+0.0167$ \\
+\addlinespace
+50 & coordinate-free & $+0.0115$ & $-0.0050$ & $-0.1100$ & $-0.1123$ & $+0.2426$ & $+0.1914$ & $+0.0811$ & $+0.0801$ \\
+ & coordinate-bearing & $+0.0556$ & $-0.0301$ & $-0.1549$ & $-0.1873$ & $+0.2971$ & $+0.1335$ & $+0.0178$ & $-0.0228$ \\
+\addlinespace
+100 & coordinate-free & $+0.0115$ & $-0.0080$ & $-0.1131$ & $-0.1131$ & $+0.2426$ & $+0.1846$ & $+0.0816$ & $+0.0816$ \\
+ & coordinate-bearing & $+0.0556$ & $-0.1539$ & $-0.2741$ & $-0.2741$ & $+0.2971$ & $+0.0187$ & $-0.1009$ & $-0.1009$ \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Which dependence pathway creates the false transfer verdict.} $\beta=0$, $R=50$~km, dense and sparse geometries pooled. Each row is one combination of the three simulated dependence pathways, so a row holds 200 realizations per specification and design: the two network geometries $\times$ 100 replicates, with $\beta$ and the three pathway switches all fixed by the row. Station-only validation is harmless when no dependence is present and reports transfer in roughly half of the realizations once temporal dependence is switched on. The buffer alone does not repair this; the temporal guard does.}
+\begin{tabular}{cccrrrrrrrr}\toprule
+\multicolumn{3}{c}{Dependence present} & \multicolumn{4}{c}{coordinate-free (\%)} & \multicolumn{4}{c}{coordinate-bearing (\%)} \\
+\cmidrule(lr){1-3}\cmidrule(lr){4-7}\cmidrule(lr){8-11}
+spatial & temporal & grid & stat. & $+$buf & $+$time & $+$cell & stat. & $+$buf & $+$time & $+$cell \\ \midrule
+-- & -- & -- & 1.0 & 2.0 & 0.0 & 0.5 & 1.5 & 1.0 & 0.0 & 0.0 \\
+-- & -- & \checkmark & 6.0 & 4.0 & 1.0 & 1.5 & 18.0 & 3.5 & 0.5 & 0.0 \\
+-- & \checkmark & -- & 80.0 & 79.0 & 13.5 & 13.0 & 80.5 & 75.0 & 14.0 & 12.5 \\
+-- & \checkmark & \checkmark & 34.5 & 29.0 & 2.5 & 2.5 & 45.0 & 12.0 & 0.5 & 1.0 \\
+\checkmark & -- & -- & 1.5 & 0.0 & 0.0 & 0.0 & 13.0 & 3.0 & 2.0 & 2.5 \\
+\checkmark & -- & \checkmark & 1.0 & 0.5 & 0.0 & 0.0 & 13.5 & 3.0 & 2.5 & 1.5 \\
+\checkmark & \checkmark & -- & 19.5 & 9.0 & 2.5 & 1.5 & 34.5 & 4.5 & 2.0 & 1.0 \\
+\checkmark & \checkmark & \checkmark & 16.5 & 9.0 & 2.5 & 2.5 & 30.0 & 6.5 & 1.5 & 1.0 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Network geometry changes what the grid-cell stage can still find.} The sparse geometry doubles source--target distances about the network centroid while holding grid-cell membership fixed, so it varies geometry without confounding the shared-grid factor. Each cell is 800 realizations (8 scenarios $\times$ 100 replicates).}
+\begin{tabular}{llcrrrr}\toprule
+& & & \multicolumn{2}{c}{$\beta=0$ false positive (\%)} & \multicolumn{2}{c}{$\beta=1$ detection (\%)}\\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+$R$ & Specification & Geometry & $+$time & $+$cell & $+$time & $+$cell \\ \midrule
+25 & coordinate-free & dense & 2.9 & 2.5 & 36.2 & 35.5 \\
+ &  & sparse & 2.1 & 2.1 & 39.8 & 38.1 \\
+ & coordinate-bearing & dense & 3.8 & 3.6 & 34.2 & 27.8 \\
+ &  & sparse & 3.6 & 2.2 & 34.4 & 27.9 \\
+\addlinespace
+50 & coordinate-free & dense & 2.5 & 2.5 & 35.9 & 35.9 \\
+ &  & sparse & 3.0 & 2.9 & 38.8 & 37.5 \\
+ & coordinate-bearing & dense & 2.6 & 2.6 & 25.6 & 25.6 \\
+ &  & sparse & 3.1 & 2.2 & 30.4 & 25.8 \\
+\addlinespace
+100 & coordinate-free & dense & 2.9 & 2.9 & 34.4 & 34.4 \\
+ &  & sparse & 2.4 & 2.4 & 36.2 & 36.2 \\
+ & coordinate-bearing & dense & 2.0 & 2.0 & 21.4 & 21.4 \\
+ &  & sparse & 2.1 & 2.1 & 23.6 & 23.6 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Data-adaptive guard width and surviving source count in the simulation.} The guard is re-estimated in every simulated source network by the same rule used on the observed data (first lag at which the median absolute source-station residual autocorrelation is at most 0.10, capped at 14 days), and never sees the target outcome. Median across realizations, with the interquartile range.}
+\begin{tabular}{llcccc}\toprule
+$R$ & $\beta$ & temporal dependence & guard (d), median [IQR] & surviving sources, median \\ \midrule
+25 & 0 & off & 1 [1, 2] & 15.5 \\
+ & 0 & on & 3 [2, 5] & 15.5 \\
+ & 1 & off & 4 [3, 5] & 15.5 \\
+ & 1 & on & 4 [3, 6] & 15.5 \\
+\addlinespace
+50 & 0 & off & 1 [1, 2] & 14.5 \\
+ & 0 & on & 3 [2, 5] & 14.5 \\
+ & 1 & off & 4 [3, 5] & 14.5 \\
+ & 1 & on & 4 [3, 6] & 14.5 \\
+\addlinespace
+100 & 0 & off & 1 [1, 2] & 13.5 \\
+ & 0 & on & 3 [2, 5] & 13.5 \\
+ & 1 & off & 4 [3, 5] & 13.5 \\
+ & 1 & on & 4 [3, 6] & 13.5 \\
+\bottomrule\end{tabular}\end{table}
+
+\subsection*{The headline specificity is a marginal average, and one corner of the factorial is not 2--3\%}
+The full-audit false-positive rate of 2--3\% reported in the main text is the rate averaged over
+the sixteen null scenarios. It is not uniform across them. In one corner of the factorial ---
+temporal dependence present, spatial dependence absent, shared-grid dependence absent --- the full
+audit still returns a positive transfer verdict in 11--13\% of realizations, at every radius and for
+both feature sets (Table~\ref{tab:simcorner}). Every other corner is at or below 4\%.
+
+The cause is not the guard, which is re-estimated at a median of three days in that corner, the same
+width as the adjacent corner that sits at 1--2\%. Nor is it the estimand: the median $\Delta$ there
+is $-0.18$, as negative as anywhere else. The cause is the inference unit. When the only dependence
+present is a common temporal component, every station carries the same residual excursion, so the 19
+station-level outcomes are near-perfectly dependent rather than independent, which is what the exact
+sign test across stations assumes. The distribution of the per-realization win rate in that corner has
+standard deviation $0.307$ against $0.13$--$0.19$ in every other corner, and is bimodal: $63\%$ of
+realizations put fewer than a fifth of stations on the positive side and $9\%$ put more than four
+fifths there, against $0\%$ in the no-dependence corner. The mean win rate is in fact
+\emph{lower} than in the no-dependence corner ($0.228$ versus $0.352$); it is the inflated
+across-station variance, not a shift in central tendency, that produces the extra verdicts.
+
+This is the same failure the main text indicts elsewhere in a different guise: a test is being read at
+an inference unit that the dependence structure does not support. It is reported here rather than
+smoothed into the average because an audit that conceals its own worst cell would be making the error
+the paper is about. It also identifies the condition under which a station-level sign test should not
+be the verdict rule --- common-mode residual dependence with no spatial structure --- and, by the same
+logic, supports the grid-cell block bootstrap used as the coarser inference unit in the empirical
+analysis.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Full-audit false-positive rate by dependence corner, $\beta=0$.} Each cell is 200 realizations (2 geometries $\times$ 100 replicates). The corner with temporal dependence alone is boxed off from the rest by an order of magnitude and is stable across all three radii.}
+\label{tab:simcorner}
+\begin{tabular}{cccrrrrrr}\toprule
+\multicolumn{3}{c}{Dependence present} & \multicolumn{2}{c}{$R=25$} & \multicolumn{2}{c}{$R=50$} & \multicolumn{2}{c}{$R=100$} \\
+\cmidrule(lr){1-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+spatial & temporal & grid & c-free & c-bear & c-free & c-bear & c-free & c-bear \\ \midrule
+-- & -- & -- & 0.0 & 0.0 & 0.5 & 0.0 & 0.5 & 0.0 \\
+-- & -- & \checkmark & 1.5 & 1.5 & 1.5 & 0.0 & 2.5 & 1.5 \\
+-- & \checkmark & -- & \textbf{12.5} & \textbf{11.5} & \textbf{13.0} & \textbf{12.5} & \textbf{12.0} & \textbf{11.0} \\
+-- & \checkmark & \checkmark & 1.5 & 0.5 & 2.5 & 1.0 & 2.5 & 1.0 \\
+\checkmark & -- & -- & 0.0 & 4.0 & 0.0 & 2.5 & 0.0 & 2.0 \\
+\checkmark & -- & \checkmark & 0.5 & 2.5 & 0.0 & 1.5 & 0.5 & 1.0 \\
+\checkmark & \checkmark & -- & 1.0 & 2.0 & 1.5 & 1.0 & 2.0 & 0.0 \\
+\checkmark & \checkmark & \checkmark & 1.5 & 1.5 & 2.5 & 1.0 & 1.0 & 0.0 \\
+\bottomrule\end{tabular}\end{table}
+
+
+\subsection*{Is the result a property of the transparent learner?}
+The simulation's corrector is ridge regression on a fixed nonlinear basis, chosen so that the
+inferential weight falls on the validation design rather than on a model architecture. The empirical
+audit uses a histogram gradient-boosting regressor. A reader is entitled to ask whether the operating
+characteristics reported above survive that substitution, since a learner that partitions its own
+feature space can exploit a dependence pathway that a fixed basis cannot.
+
+The experiment was therefore repeated with
+\texttt{HistGradientBoostingRegressor} under the settings the empirical audit uses (300 iterations,
+learning rate 0.05, maximum depth 6, internal early stopping disabled, \texttt{random\_state}~$=0$),
+on the raw feature set rather than the radial basis: the mechanistic value, the seasonal pair, the
+date index, and, for the coordinate-bearing specification, the coordinates. The date index is given
+to the tree deliberately. Over a single simulated year it is a bijection onto the day, which is the
+pathway the temporal guard exists to close, and withholding it would make the tree easier to audit
+than the estimator used on the real network. Twenty-five replicates per scenario were run rather than
+one hundred, because a gradient-boosted fit is roughly two orders of magnitude more expensive than a
+ridge solve and the experiment refits the model once per target, design, specification and replicate.
+Each aggregated cell is therefore 400 realizations rather than 1{,}600, and the intervals below are
+correspondingly wider. The complete ladder was run at the primary radius. At the two sensitivity radii
+only the full-audit rung was run, because the proposition under test there is whether the operating
+characteristics of the \emph{audited} design depend on the corrector, and the intermediate rungs at
+those radii do not bear on it. Before relying on that restriction we checked it: a run with the design
+loop restricted returns rows bit-identical to the same rows of an unrestricted run.
+
+Comparing two learners means testing the difference between them, not asking whether their separate
+intervals overlap. That is the distinction this manuscript insists on elsewhere for the two feature
+sets (Gelman and Stern, 2006), and it applies here to us. Each pair is therefore tested directly, by
+Fisher's exact test on the underlying verdict counts, with Benjamini--Hochberg applied across the
+twelve full-audit comparisons of Table~\ref{tab:learner3r}. The distinction is not decorative: the
+interval reading declares all twelve pairs identical, and the direct test does not.
+
+\textbf{False-positive control is learner-invariant at every radius.} Under $\beta=0$ the full audit
+returns $1.00$--$1.75\%$ under the tree against $2.06$--$2.94\%$ under ridge across the three radii.
+None of the six pairs differs ($p$ from $0.061$ to $0.440$; every $q>0.35$), and the tree sits on the
+conservative side of all six. Specificity also improves monotonically as the buffer widens under the
+tree --- $1.50$, $1.25$, $1.00\%$ coordinate-free and $1.75$, $1.25$, $1.25\%$ coordinate-bearing at
+$25$, $50$ and $100$~km --- which is the direction the design predicts and the first of the three
+pre-declared sanity conditions.
+
+\textbf{Retained detection is learner-invariant except at one cell, and there the tree is the more
+optimistic learner.} Eleven of the twelve comparisons return $p\ge0.05$. The exception is
+coordinate-bearing detection at $R=100$~km: $28.75\%$ under the tree against $22.50\%$ under ridge,
+a difference of $+6.25$ percentage points $[+1.37, +11.14]$, $p=0.010$, which does not survive the
+correction across the family ($q=0.12$). We report it rather than let the interval overlap absorb it,
+because it qualifies a secondary claim. The decline of coordinate-bearing detection as the buffer
+widens --- $27.81\%$ at $25$~km to $22.50\%$ at $100$~km under ridge, $p=0.001$ --- is not reproduced
+under the tree, which moves from $30.75\%$ to $28.75\%$ ($p=0.59$) on a quarter of the sample. The
+specificity result carries across both learners and all three radii. The size of the coordinate-bearing
+power loss at the widest buffer is a property the two learners do not share, and the main text states
+it as a ridge-based result.
+
+\textbf{The unaudited rungs are not learner-invariant, and the tree is worse.} At the primary radius,
+the only one at which the intermediate rungs were run, a plain station holdout makes the tree declare
+transfer in $52.0\%$ and $56.3\%$ of null realizations against $20.0\%$ and $29.5\%$ under ridge:
+$+32.0$ percentage points $[+26.7, +37.3]$ and $+26.8$ $[+21.4, +32.1]$, both with $p<10^{-22}$ by the
+same direct test. The distance buffer alone leaves the gap open ($28.3\%$ and $24.0\%$ against
+$16.6\%$ and $13.6\%$; $p<10^{-6}$ for both). Only after the temporal guard do the two learners stop
+differing ($p=0.29$ and $p=0.075$).
+
+The consequence for the empirical arm is not neutral. The real network is audited with the tree, so
+the ridge-based rates reported in the main text \emph{understate} how misleading an unaudited station
+holdout would be in that setting. A flexible learner does not weaken the case for controlling the
+dependence pathways; it is the case.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Learner sensitivity of the simulated audit, $R=50$~km.} Verdict rates in per cent with Wilson 95\% intervals. Ridge cells are 1{,}600 realizations (16 scenarios $\times$ 100 replicates); gradient-boosting cells are 400 (16 $\times$ 25). $\tilde\Delta$ is the median across realizations of the per-realization median station-level $\Delta$.}
+\label{tab:learner}
+\begin{tabular}{llllrr}\toprule
+$\beta$ & Specification & Design & Ridge (RBF basis) & \multicolumn{2}{c}{Gradient boosting} \\
+\cmidrule(lr){4-4}\cmidrule(lr){5-6}
+ & & & rate [95\% CI] & rate [95\% CI] & $\tilde\Delta$ \\ \midrule
+$0$ & coordinate-free & station & 20.00 [18.11, 22.03] & 52.00 [47.11, 56.85] & $+0.1316$ \\
+ &  & $+$ buffer & 16.56 [14.82, 18.46] & 28.25 [24.06, 32.85] & $-0.0115$ \\
+ &  & $+$ time guard & 2.75 [2.05, 3.67] & 1.75 [0.85, 3.57] & $-0.1098$ \\
+ &  & $+$ grid cell & 2.69 [2.00, 3.60] & 1.25 [0.54, 2.89] & $-0.1103$ \\
+\addlinespace
+ & coordinate-bearing & station & 29.50 [27.32, 31.78] & 56.25 [51.35, 61.03] & $+0.2360$ \\
+ &  & $+$ buffer & 13.56 [11.97, 15.33] & 24.00 [20.07, 28.42] & $-0.0203$ \\
+ &  & $+$ time guard & 2.88 [2.16, 3.81] & 1.25 [0.54, 2.89] & $-0.0912$ \\
+ &  & $+$ grid cell & 2.44 [1.79, 3.31] & 1.25 [0.54, 2.89] & $-0.0958$ \\
+\addlinespace
+$1$ & coordinate-free & station & 77.94 [75.84, 79.90] & 93.50 [90.65, 95.53] & $+0.3534$ \\
+ &  & $+$ buffer & 63.38 [60.98, 65.70] & 64.00 [59.18, 68.55] & $+0.2405$ \\
+ &  & $+$ time guard & 37.31 [34.98, 39.71] & 35.25 [30.73, 40.05] & $+0.0750$ \\
+ &  & $+$ grid cell & 36.69 [34.36, 39.08] & 34.75 [30.25, 39.54] & $+0.0672$ \\
+\addlinespace
+ & coordinate-bearing & station & 79.56 [77.52, 81.47] & 92.75 [89.78, 94.90] & $+0.4257$ \\
+ &  & $+$ buffer & 43.56 [41.15, 46.00] & 54.00 [49.10, 58.82] & $+0.2258$ \\
+ &  & $+$ time guard & 28.00 [25.85, 30.25] & 30.75 [26.43, 35.44] & $+0.0595$ \\
+ &  & $+$ grid cell & 25.69 [23.61, 27.88] & 28.75 [24.53, 33.37] & $+0.0502$ \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Learner sensitivity of the full audit across all three pre-declared radii.} Verdict rates in per cent for the full audit (distance buffer $+$ time guard $+$ grid-cell exclusion). Ridge cells are 1{,}600 realizations (16 scenarios $\times$ 100 replicates); gradient-boosting cells are 400 (16 $\times$ 25). The comparison is the \emph{paired difference between learners}, tested directly by Fisher's exact test, not by asking whether the two intervals overlap: the overlap reading declares all twelve pairs identical, and one of them is not. $q$ is Benjamini--Hochberg across this family of twelve.}
+\label{tab:learner3r}
+\begin{tabular}{llrrrrr}\toprule
+$\beta$ & Specification & $R$ (km) & Ridge (\%) & Tree (\%) & Difference [95\% CI] & $p$ \quad ($q$) \\ \midrule
+$0$ & coordinate-free & 25 & 2.31 & 1.50 & $-0.81$ $[-2.21, +0.59]$ & 0.440 \quad (0.58) \\
+ &  & 50 & 2.69 & 1.25 & $-1.44$ $[-2.78, -0.09]$ & 0.102 \quad (0.41) \\
+ &  & 100 & 2.62 & 1.00 & $-1.62$ $[-2.88, -0.37]$ & 0.061 \quad (0.36) \\
+\addlinespace
+$0$ & coordinate-bearing & 25 & 2.94 & 1.75 & $-1.19$ $[-2.72, +0.34]$ & 0.229 \quad (0.45) \\
+ &  & 50 & 2.44 & 1.25 & $-1.19$ $[-2.51, +0.14]$ & 0.183 \quad (0.45) \\
+ &  & 100 & 2.06 & 1.25 & $-0.81$ $[-2.10, +0.48]$ & 0.411 \quad (0.58) \\
+\addlinespace
+$1$ & coordinate-free & 25 & 36.81 & 36.25 & $-0.56$ $[-5.83, +4.71]$ & 0.862 \quad (0.91) \\
+ &  & 50 & 36.69 & 34.75 & $-1.94$ $[-7.17, +3.29]$ & 0.486 \quad (0.58) \\
+ &  & 100 & 35.31 & 35.75 & $+0.44$ $[-4.81, +5.69]$ & 0.907 \quad (0.91) \\
+\addlinespace
+$1$ & coordinate-bearing & 25 & 27.81 & 30.75 & $+2.94$ $[-2.09, +7.96]$ & 0.264 \quad (0.45) \\
+ &  & 50 & 25.69 & 28.75 & $+3.06$ $[-1.86, +7.99]$ & 0.228 \quad (0.45) \\
+ &  & 100 & 22.50 & 28.75 & $+6.25$ $[+1.37, +11.13]$ & 0.010\,$^{*}$ \quad (0.12) \\
+\bottomrule\end{tabular}
+\par\smallskip\raggedright\footnotesize $^{*}$ raw $p<0.05$; does not survive Benjamini--Hochberg across the twelve comparisons.
+\end{table}
+
+
+
+\subsection*{Does the simulated ladder span the same deployment geometry as the real one?}
+The simulation carries the paper's generality claim, so it has to be shown that its validation
+ladder reaches the same deployment geometry as the observed network's. Tables~S27 and~S28 report the
+nearest-neighbour distance structure and the area of applicability for the real audit; the same two
+diagnostics are computed here for the simulated networks by
+\texttt{simulation/aoa\_knndm\_sim.py}.
+
+The distance structure is the quantity kNNDM minimises (Mil\`a et al., 2022; Linnenbrink et al., 2024): the discrepancy
+between the distance from a target to its nearest surviving source and the nearest-neighbour distance
+\emph{within} the surviving source set. The dissimilarity index and its threshold follow
+Meyer and Pebesma (2021), in the unweighted variant --- the feature-importance weighting of the original
+formulation needs a fitted model, and what is at issue here is the design rather than one corrector.
+Station geometry, cell assignment and the feature matrix are deterministic given the geometry factor
+and the seed, so one seeded realization per cell suffices.
+
+Three things follow.
+
+\textbf{Plain leave-one-station-out validates interpolation in the simulation too.} At zero buffer
+the target-to-source and within-source distance distributions coincide (both medians $6.55$~km in the
+dense geometry, $13.10$~km in the sparse one; $W_1 = 1.98$ and $3.98$~km). This is the same statement
+Table~S27 makes about the observed network, and it is what makes the station rung's 20--29\%
+false-positive rate interpretable rather than surprising.
+
+\textbf{The ladder reaches genuine extrapolation.} Under the full audit the median target-to-source
+distance rises to $107.8$~km in the dense geometry and $147.0$~km in the sparse one, against a
+within-source nearest neighbour that stays near $7$ and $14$~km; $W_1$ reaches $86.4$ and
+$103.0$~km.
+
+\textbf{The coordinate result reproduces independently.} In the observed network the
+coordinate-bearing specification at a 100~km buffer is inadmissible everywhere by the
+area-of-applicability criterion (median DI $6.76$, $100\%$ of points outside) while the
+coordinate-free one stays admissible (DI $1.23$, $10.5\%$ outside). The simulated networks reproduce
+the structure and the order of magnitude without being tuned to do so: coordinate-bearing DI rises
+from $1.44$ to $4.19$ across the buffer ladder with $66.4\%$ of points outside at $100$~km, whereas
+coordinate-free DI stays between $0.81$ and $0.88$ with at most $9.6\%$ outside. The empirical and
+the simulated arms therefore agree on the mechanism, not only on the verdict: coordinates do not
+become harmful, they become inadmissible, and the buffer is what exposes it.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{\textbf{Distance structure and area of applicability of the simulated validation ladder.} Station rung at zero buffer, and the full audit at each pre-declared radius, for both simulated geometries. Distances in km; $W_1$ is the Wasserstein-1 distance between the target-to-source and within-source nearest-neighbour distributions, which is what kNNDM minimises. DI is the unweighted dissimilarity index and the last column the share of target prediction points above the area-of-applicability threshold. Compare Tables~S27 and~S28 for the observed network.}
+\label{tab:simaoa}
+\begin{tabular}{llcrrrrr}\toprule
+Geometry & Specification & Rung & $R$ & target$\to$source & within source & $W_1$ & DI [outside] \\ \midrule
+dense & coordinate-free & station & 0 & 6.5 & 6.5 & 2.0 & 0.59 [1.2\%] \\
+ &  & full audit & 0 & 48.3 & 6.5 & 24.6 & 0.86 [7.9\%] \\
+ &  & full audit & 25 & 62.6 & 7.0 & 37.4 & 0.88 [9.6\%] \\
+ &  & full audit & 50 & 73.5 & 7.0 & 51.4 & 0.86 [8.5\%] \\
+ &  & full audit & 100 & 107.8 & 7.0 & 86.4 & 0.81 [9.1\%] \\
+\addlinespace
+dense & coordinate-bearing & station & 0 & 6.5 & 6.5 & 2.0 & 0.70 [1.5\%] \\
+ &  & full audit & 0 & 48.3 & 6.5 & 24.6 & 1.44 [17.5\%] \\
+ &  & full audit & 25 & 62.6 & 7.0 & 37.4 & 1.78 [17.5\%] \\
+ &  & full audit & 50 & 73.5 & 7.0 & 51.4 & 2.18 [33.9\%] \\
+ &  & full audit & 100 & 107.8 & 7.0 & 86.4 & 4.19 [66.4\%] \\
+\addlinespace
+sparse & coordinate-free & station & 0 & 13.1 & 13.1 & 4.0 & 0.59 [1.2\%] \\
+ &  & full audit & 0 & 96.6 & 13.1 & 49.2 & 0.86 [7.9\%] \\
+ &  & full audit & 25 & 96.6 & 13.6 & 51.2 & 0.86 [8.5\%] \\
+ &  & full audit & 50 & 125.1 & 14.0 & 74.8 & 0.88 [9.6\%] \\
+ &  & full audit & 100 & 147.0 & 14.0 & 102.9 & 0.86 [8.5\%] \\
+\addlinespace
+sparse & coordinate-bearing & station & 0 & 13.1 & 13.1 & 4.0 & 0.70 [1.5\%] \\
+ &  & full audit & 0 & 96.6 & 13.1 & 49.2 & 1.44 [17.5\%] \\
+ &  & full audit & 25 & 96.6 & 13.6 & 51.2 & 1.44 [17.5\%] \\
+ &  & full audit & 50 & 125.1 & 14.0 & 74.8 & 1.78 [17.5\%] \\
+ &  & full audit & 100 & 147.0 & 14.0 & 102.9 & 2.18 [33.9\%] \\
+\bottomrule\end{tabular}\end{table}
+
+\end{document}

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+simulation/results/out_R*/
+*.aux
+*.log
+*.out
+*.blg
+*.bbl
+*.fls
+*.fdb_latexmk

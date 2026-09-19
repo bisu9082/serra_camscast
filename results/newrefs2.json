@@ -1,0 +1,74 @@
+{
+ "lerest2014": {
+  "doi": "10.1111/geb.12161",
+  "title": "Spatial leave‐one‐out cross‐validation for variable selection in the presence of spatial autocorrelation",
+  "journal": "Global Ecology and Biogeography",
+  "year": 2014,
+  "volume": "23",
+  "pages": "811-820",
+  "authors": "Le Rest, Kévin and Pinaud, David and Monestiez, Pascal and Chadoeuf, Joël and Bretagnolle, Vincent"
+ },
+ "pohjankukka2017": {
+  "doi": "10.1080/13658816.2017.1346255",
+  "title": "Estimating the prediction performance of spatial models via spatial k-fold cross validation",
+  "journal": "International Journal of Geographical Information Science",
+  "year": 2017,
+  "volume": "31",
+  "pages": "2001-2019",
+  "authors": "Pohjankukka, Jonne and Pahikkala, Tapio and Nevalainen, Paavo and Heikkonen, Jukka"
+ },
+ "telford2009": {
+  "doi": "10.1016/j.quascirev.2008.12.020",
+  "title": "Evaluation of transfer functions in spatially structured environments",
+  "journal": "Quaternary Science Reviews",
+  "year": 2009,
+  "volume": "28",
+  "pages": "1309-1316",
+  "authors": "Telford, R.J. and Birks, H.J.B."
+ },
+ "meyer2018llto": {
+  "doi": "10.1016/j.envsoft.2017.12.001",
+  "title": "Improving performance of spatio-temporal machine learning models using forward feature selection and target-oriented validation",
+  "journal": "Environmental Modelling &amp; Software",
+  "year": 2018,
+  "volume": "101",
+  "pages": "1-9",
+  "authors": "Meyer, Hanna and Reudenbach, Christoph and Hengl, Tomislav and Katurji, Marwan and Nauss, Thomas"
+ },
+ "lerch2017": {
+  "doi": "10.1214/16-STS588",
+  "title": "Forecaster’s Dilemma: Extreme Events and Forecast Evaluation",
+  "journal": "Statistical Science",
+  "year": 2017,
+  "volume": "32",
+  "pages": "",
+  "authors": "Lerch, Sebastian and Thorarinsdottir, Thordis L. and Ravazzolo, Francesco and Gneiting, Tilmann"
+ },
+ "schaefer1990": {
+  "doi": "10.1175/1520-0434(1990)005<0570:TCSIAA>2.0.CO;2",
+  "title": "The Critical Success Index as an Indicator of Warning Skill",
+  "journal": "Weather and Forecasting",
+  "year": 1990,
+  "volume": "5",
+  "pages": "570-575",
+  "authors": "Schaefer, Joseph T."
+ },
+ "remy2019": {
+  "doi": "10.5194/gmd-12-4627-2019",
+  "title": "Description and evaluation of the tropospheric aerosol scheme in the European Centre for Medium-Range Weather Forecasts (ECMWF) Integrated Forecasting System (IFS-AER, cycle 45R1)",
+  "journal": "Geoscientific Model Development",
+  "year": 2019,
+  "volume": "12",
+  "pages": "4627-4659",
+  "authors": "Rémy, Samuel and Kipling, Zak and Flemming, Johannes and Boucher, Olivier and Nabat, Pierre and Michou, Martine and Bozzo, Alessio and Ades, Melanie and Huijnen, Vincent and Benedetti, Angela and Engelen, Richard and Peuch, Vincent-Henri and Morcrette, Jean-Jacques"
+ },
+ "emery2017": {
+  "doi": "10.1080/10962247.2016.1265027",
+  "title": "Recommendations on statistics and benchmarks to assess photochemical model performance",
+  "journal": "Journal of the Air &amp; Waste Management Association",
+  "year": 2017,
+  "volume": "67",
+  "pages": "582-598",
+  "authors": "Emery, Christopher and Liu, Zhen and Russell, Armistead G. and Odman, M. Talat and Yarwood, Greg and Kumar, Naresh"
+ }
+}

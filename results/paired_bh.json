@@ -1,0 +1,41 @@
+{
+ "family": "paired coordinate-free minus coordinate-bearing, four buffer radii, full three-fold control",
+ "family_size": 4,
+ "note": "BH applied to the sign test and the Wilcoxon test as separate families",
+ "R0": {
+  "sign_p": 0.6476058959960938,
+  "sign_bh": 0.6476058959960938,
+  "coordfree_better": 11,
+  "n": 19,
+  "cells_favouring_coordfree": 5,
+  "wilcoxon_p": 0.7380905151367188,
+  "wilcoxon_bh": 0.7380905151367188
+ },
+ "R25": {
+  "sign_p": 0.0192108154296875,
+  "sign_bh": 0.07684326171875,
+  "coordfree_better": 15,
+  "n": 19,
+  "cells_favouring_coordfree": 7,
+  "wilcoxon_p": 0.11337661743164062,
+  "wilcoxon_bh": 0.1511688232421875
+ },
+ "R50": {
+  "sign_p": 0.063568115234375,
+  "sign_bh": 0.12713623046875,
+  "coordfree_better": 14,
+  "n": 19,
+  "cells_favouring_coordfree": 7,
+  "wilcoxon_p": 0.09551239013671875,
+  "wilcoxon_bh": 0.1511688232421875
+ },
+ "R100": {
+  "sign_p": 0.1670684814453125,
+  "sign_bh": 0.22275797526041666,
+  "coordfree_better": 13,
+  "n": 19,
+  "cells_favouring_coordfree": 7,
+  "wilcoxon_p": 0.036067962646484375,
+  "wilcoxon_bh": 0.1442718505859375
+ }
+}

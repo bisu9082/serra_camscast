@@ -1,0 +1,59 @@
+{
+ "n_stations": 19,
+ "nn_station_to_station": {
+  "median": 6.546974277491796,
+  "mean": 18.340606669793818,
+  "min": 0.9510316048097839,
+  "max": 73.6665051097513,
+  "q25": 5.8617193054986725,
+  "q75": 28.94278653171589
+ },
+ "nn_prediction_to_station": {
+  "n_sample": 20000,
+  "median": 35.037387254186626,
+  "mean": 37.31877015465663,
+  "min": 0.0989463622934557,
+  "max": 101.17362141615321,
+  "q25": 21.984838798944153,
+  "q75": 49.958918961190086
+ },
+ "buffered_designs": {
+  "R0": {
+   "n_targets": 19,
+   "median_nn_to_source": 48.31694016936267,
+   "min_nn_to_source": 6.4123150624724365,
+   "max_nn_to_source": 107.54868712019179
+  },
+  "R25": {
+   "n_targets": 19,
+   "median_nn_to_source": 62.673483507363464,
+   "min_nn_to_source": 30.865069571750755,
+   "max_nn_to_source": 107.54868712019179
+  },
+  "R50": {
+   "n_targets": 19,
+   "median_nn_to_source": 73.6665051097513,
+   "min_nn_to_source": 50.52414993619214,
+   "max_nn_to_source": 107.54868712019179
+  },
+  "R75": {
+   "n_targets": 19,
+   "median_nn_to_source": 83.95314640329079,
+   "min_nn_to_source": 75.9516124635546,
+   "max_nn_to_source": 109.5176411334831
+  },
+  "R100": {
+   "n_targets": 19,
+   "median_nn_to_source": 108.12067907200317,
+   "min_nn_to_source": 101.58889599699306,
+   "max_nn_to_source": 115.02268899800308
+  }
+ },
+ "fold_assignments_available": {
+  "k=5": 147589284710,
+  "k=6": 693081601779,
+  "k=10": 477297033785
+ },
+ "leave_one_out_folds": 19,
+ "gap_median_km": 28.49041297669483
+}

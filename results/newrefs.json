@@ -1,0 +1,142 @@
+{
+ "mila2024proxies": {
+  "doi": "10.5194/gmd-17-6007-2024",
+  "title": "Random forests with spatial proxies for environmental modelling: opportunities and pitfalls",
+  "journal": "Geoscientific Model Development",
+  "year": 2024,
+  "volume": "17",
+  "pages": "6007-6033",
+  "authors": "Milà, Carles and Ludwig, Marvin and Pebesma, Edzer and Tonne, Cathryn and Meyer, Hanna",
+  "n_auth": 5
+ },
+ "meyer2021aoa": {
+  "doi": "10.1111/2041-210X.13650",
+  "title": "Predicting into unknown space? Estimating the area of applicability of spatial prediction models",
+  "journal": "Methods in Ecology and Evolution",
+  "year": 2021,
+  "volume": "12",
+  "pages": "1620-1633",
+  "authors": "Meyer, Hanna and Pebesma, Edzer",
+  "n_auth": 2
+ },
+ "ploton2020": {
+  "doi": "10.1038/s41467-020-18321-y",
+  "title": "Spatial validation reveals poor predictive performance of large-scale ecological mapping models",
+  "journal": "Nature Communications",
+  "year": 2020,
+  "volume": "11",
+  "pages": "4540",
+  "authors": "Ploton, Pierre and Mortier, Frédéric and Réjou-Méchain, Maxime and Barbier, Nicolas and Picard, Nicolas and Rossi, Vivien and Dormann, Carsten and Cornu, Guillaume and Viennois, Gaëlle and Bayol, Nicolas and Lyapustin, Alexei and Gourlet-Fleury, Sylvie and Pélissier, Raphaël",
+  "n_auth": 13
+ },
+ "mila2022nndm": {
+  "doi": "10.1111/2041-210X.13851",
+  "title": "Nearest neighbour distance matching\n                    <scp>Leave‐One‐Out Cross‐Validation</scp>\n                    for map validation",
+  "journal": "Methods in Ecology and Evolution",
+  "year": 2022,
+  "volume": "13",
+  "pages": "1304-1316",
+  "authors": "Milà, Carles and Mateu, Jorge and Pebesma, Edzer and Meyer, Hanna",
+  "n_auth": 4
+ },
+ "wadoux2021": {
+  "doi": "10.1016/j.ecolmodel.2021.109692",
+  "title": "Spatial cross-validation is not the right way to evaluate map accuracy",
+  "journal": "Ecological Modelling",
+  "year": 2021,
+  "volume": "457",
+  "pages": "109692",
+  "authors": "Wadoux, Alexandre M.J.-C. and Heuvelink, Gerard B.M. and de Bruin, Sytze and Brus, Dick J.",
+  "n_auth": 4
+ },
+ "valavi2019blockcv": {
+  "doi": "10.1111/2041-210X.13107",
+  "title": "<scp>block</scp>\n                    <scp>CV</scp>\n                    : An\n                    <scp>r</scp>\n                    package for generating spatially or environmentally separated folds for\n                    <i>k</i>\n                    ‐fold cross‐validation of species distribution models",
+  "journal": "Methods in Ecology and Evolution",
+  "year": 2018,
+  "volume": "10",
+  "pages": "225-232",
+  "authors": "Valavi, Roozbeh and Elith, Jane and Lahoz‐Monfort, José J. and Guillera‐Arroita, Gurutzeta",
+  "n_auth": 4
+ },
+ "linnenbrink2024": {
+  "doi": "10.5194/gmd-17-5897-2024",
+  "title": "kNNDM CV:\n                    <i>k</i>\n                    -fold nearest-neighbour distance matching cross-validation for map accuracy estimation",
+  "journal": "Geoscientific Model Development",
+  "year": 2024,
+  "volume": "17",
+  "pages": "5897-5912",
+  "authors": "Linnenbrink, Jan and Milà, Carles and Ludwig, Marvin and Meyer, Hanna",
+  "n_auth": 4
+ },
+ "debruin2022": {
+  "doi": "10.1016/j.ecoinf.2022.101665",
+  "title": "Dealing with clustered samples for assessing map accuracy by cross-validation",
+  "journal": "Ecological Informatics",
+  "year": 2022,
+  "volume": "69",
+  "pages": "101665",
+  "authors": "de Bruin, Sytze and Brus, Dick J. and Heuvelink, Gerard B.M. and van Ebbenhorst Tengbergen, Tom and Wadoux, Alexandre M.J-C.",
+  "n_auth": 5
+ },
+ "brenning2023": {
+  "doi": "10.1080/13658816.2022.2131789",
+  "title": "Spatial machine-learning model diagnostics: a model-agnostic distance-based approach",
+  "journal": "International Journal of Geographical Information Science",
+  "year": 2022,
+  "volume": "37",
+  "pages": "584-606",
+  "authors": "Brenning, Alexander",
+  "n_auth": 1
+ },
+ "karasiak2022": {
+  "doi": "10.1007/s10994-021-05972-1",
+  "title": "Spatial dependence between training and test sets: another pitfall of classification accuracy assessment in remote sensing",
+  "journal": "Machine Learning",
+  "year": 2021,
+  "volume": "111",
+  "pages": "2715-2740",
+  "authors": "Karasiak, N. and Dejoux, J.-F. and Monteil, C. and Sheeren, D.",
+  "n_auth": 4
+ },
+ "maier2023": {
+  "doi": "10.1016/j.envsoft.2023.105779",
+  "title": "On how data are partitioned in model development and evaluation: Confronting the elephant in the room to enhance model generalization",
+  "journal": "Environmental Modelling &amp; Software",
+  "year": 2023,
+  "volume": "167",
+  "pages": "105779",
+  "authors": "Maier, Holger R. and Zheng, Feifei and Gupta, Hoshin and Chen, Junyi and Mai, Juliane and Savic, Dragan and Loritz, Ralf and Wu, Wenyan and Guo, Danlu and Bennett, Andrew and Jakeman, Anthony and Razavi, Saman and Zhao, Jianshi",
+  "n_auth": 13
+ },
+ "meyer2022global": {
+  "doi": "10.1038/s41467-022-29838-9",
+  "title": "Machine learning-based global maps of ecological variables and the challenge of assessing them",
+  "journal": "Nature Communications",
+  "year": 2022,
+  "volume": "13",
+  "pages": "2208",
+  "authors": "Meyer, Hanna and Pebesma, Edzer",
+  "n_auth": 2
+ },
+ "meyer2019predictors": {
+  "doi": "10.1016/j.ecolmodel.2019.108815",
+  "title": "Importance of spatial predictor variable selection in machine learning applications – Moving from data reproduction to spatial prediction",
+  "journal": "Ecological Modelling",
+  "year": 2019,
+  "volume": "411",
+  "pages": "108815",
+  "authors": "Meyer, Hanna and Reudenbach, Christoph and Wöllauer, Stephan and Nauss, Thomas",
+  "n_auth": 4
+ },
+ "roberts2017": {
+  "doi": "10.1111/ecog.02881",
+  "title": "Cross‐validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure",
+  "journal": "Ecography",
+  "year": 2017,
+  "volume": "40",
+  "pages": "913-929",
+  "authors": "Roberts, David R. and Bahn, Volker and Ciuti, Simone and Boyce, Mark S. and Elith, Jane and Guillera‐Arroita, Gurutzeta and Hauenstein, Severin and Lahoz‐Monfort, José J. and Schröder, Boris and Thuiller, Wilfried and Warton, David I. and Wintle, Brendan A. and Hartig, Florian and Dormann, Carsten F.",
+  "n_auth": 14
+ }
+}

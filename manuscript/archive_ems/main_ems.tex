@@ -1,0 +1,568 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Environmental Modelling & Software (Elsevier)
+%% elsarticle + author-date (Harvard) reference style
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[review,times,authoryear]{elsarticle}
+
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{textcomp}
+\usepackage{url}
+\usepackage{lineno}
+\usepackage[per-mode=symbol]{siunitx}
+\modulolinenumbers[5]
+
+\newcommand*{\ugm}{\ensuremath{\mu\mathrm{g\,m^{-3}}}}
+\newcommand*{\pmtf}{\ensuremath{\mathrm{PM_{2.5}}}}
+\newcommand*{\pmten}{\ensuremath{\mathrm{PM_{10}}}}
+
+\journal{Environmental Modelling \& Software}
+
+\begin{document}
+\begin{frontmatter}
+
+\title{Auditing spatial generalization in residual-correction models:
+three conventions decide the verdict}
+
+\author[cbrn]{Jin Yoo\fnref{eq}}
+\ead{tysonyj@snu.ac.kr}
+\author[cbrn]{Doo-Hee Lee\fnref{eq}}
+\ead{cbr6201@mnd.go.kr}
+\author[snu]{Jeongyun Kim}
+\ead{jykim3022@gmail.com}
+\author[cbrn]{Ku Kang\corref{cor}}
+\ead{bisu9082@gmail.com}
+
+\cortext[cor]{Corresponding author.}
+\fntext[eq]{These authors contributed equally to this work.}
+
+\address[cbrn]{CBRN Defense Research Institute, Korea Ministry of National Defense,
+Seoul 06796, Republic of Korea}
+\address[snu]{Department of Chemical and Biological Engineering, Seoul National University,
+Seoul 08826, Republic of Korea}
+
+\begin{abstract}
+Residual models fitted at monitoring stations are often said to generalize to unseen ones,
+but in an autocorrelated network a model can appear to transfer while interpolating.
+Auditing that claim needs a distance buffer, time blocks with a guard band and a
+leave-one-grid-cell-out stage, crossed with a coordinate-free ablation. Over a dense
+19-station network the verdict turns out to be set by three parameters inside the audit
+that are chosen by convention rather than measured: the guard band, the block boundaries
+and the flat-line quality-control threshold. Moved to a measured setting, any one of them
+removes the reported gain. Taking the guard from the residual autocorrelation of the
+network itself (ten days, where it reaches $+0.08$) rather than from an assumed episode
+duration (three days, still $+0.19$) removes it at every radius and for both feature sets,
+at a cost of $11.6\%$ of the training data --- too small a loss of power to account for the
+change. None of the three is the model, the buffer or the feature set, where an audit's
+attention usually goes. The cold start is the case worth auditing because the benchmark
+that frames it settles the alternative: against foundation-model and persistence nowcasts
+on identical rolling origins, the CAMS reanalysis is outperformed wherever recent
+observations exist, and retains value at abrupt extremes, at longer lead and at
+unmonitored sites --- which is exactly where a transferred correction is claimed.
+\end{abstract}
+
+\begin{keyword}
+spatial generalization \sep cross-validation \sep spatial autocorrelation \sep
+model evaluation \sep bias correction \sep chemical transport model
+\end{keyword}
+
+\end{frontmatter}
+
+\linenumbers
+\section{Introduction}
+
+Environmental data are spatially autocorrelated, and that autocorrelation makes model
+evaluation harder than it looks. When training and test samples are drawn from the same
+clustered network, a model can score well by recognising where it is rather than by
+learning a relationship that transfers, and random $k$-fold cross-validation will
+certify that score. The consequences have been documented repeatedly: blocked or
+spatially separated folds change measured skill substantially in species-distribution
+modelling \citep{roberts2017,valavi2019blockcv}; large-scale ecological maps validated by
+random cross-validation lose most of their apparent accuracy under spatial validation
+\citep{ploton2020}; and spatial dependence between training and test sets inflates
+accuracy assessments in remote-sensing classification \citep{karasiak2022}. The
+methodological response has been to make the evaluation design itself the object of
+study: selecting predictors so that spatial proxies do not dominate
+\citep{meyer2019predictors}, delimiting the region in which a model may legitimately be
+applied \citep{meyer2021aoa,meyer2022global}, withholding a buffer around each held-out
+location and sweeping its radius \citep{telford2009,lerest2014,pohjankukka2017}, blocking
+in space and time together \citep{meyer2018llto}, matching the training-to-prediction and
+training-to-test distance distributions \citep{mila2022nndm,linnenbrink2024}, correcting
+for clustered sampling in map-accuracy estimation \citep{debruin2022}, diagnosing spatial
+models by their behaviour as a function of distance \citep{brenning2023}, and confronting
+how data partitioning itself governs reported generalization \citep{maier2023}. The
+prescription is not uncontested: \citet{wadoux2021} argue that for estimating map accuracy
+over a defined area, probability sampling (not spatial cross-validation) is the correct
+instrument, and that spatially blocked designs answer a different question. That
+disagreement is about the target of inference, and it sharpens rather than removes the
+problem we address here: a claim that a fitted correction \emph{transfers to a new
+station} is a claim about extrapolation to an unsampled location, and it needs a design
+that can be made to fail. Because that objection, if it holds, would make our result an
+artefact of the design rather than a property of the correction, we return to it in
+Section~\ref{sec:implications} and answer it with three measurements rather than an argument.
+
+Most of this literature concerns \emph{mapping}: predicting a variable from covariates
+across a domain. A different and operationally common case has received far less
+scrutiny: \emph{residual transfer}, in which a model learns the discrepancy between a
+mechanistic simulation and observations at monitored sites and is then applied to correct
+that simulation where no monitor exists. Hybrid schemes of this form are increasingly
+reported in atmospheric composition, hydrology and related fields, frequently with an
+explicit claim of spatial generalization. The claim is attractive because it promises coverage where data are missing, and it is difficult to falsify because the
+stations used to fit the correction and the station being corrected are, by construction,
+part of one autocorrelated field. The closest prior treatment is \citet{mila2024proxies},
+who showed by simulation (with case studies including fine particulate pollution over
+continental Spain) that random forests using spatial proxies (coordinates, distance
+fields) are poorly suited to spatial extrapolation, and that nearest-neighbour distance
+matching cross-validation can reveal this. Our work extends that finding in three
+specific ways rather than repeating it. First, the object is different: we audit the
+transfer of a \emph{residual correction applied to a mechanistic field}, which is the
+configuration in which cold-start claims are actually made, rather than the mapping of a
+variable from covariates. Second, the instrument is different in a way that matters
+operationally: instead of matching distance distributions, we sweep an explicit buffer
+radius and report, at every radius, how many source stations survive. That count
+separates ``no transferable skill'' from ``too little training data'' and converts
+directly into a deployment rule expressed in kilometres. Third, we add a diagnostic we have not seen used
+for this purpose: \emph{instability under resampling of the source set}. A specification
+that has memorised station identity depends on which stations happened to be available to
+fit it, so the spread of an estimate across bootstrap resamples of the source stations is
+itself evidence about what the model learned. The random seed is not a substitute here:
+with early stopping disabled the estimator is deterministic and seed-invariant, so seed
+spread measures nothing.
+
+The demonstration domain is chosen because the transfer claim there has direct
+consequences. Airborne particulate matter is among the leading environmental risk
+factors for human health, with cardiopulmonary and mortality burdens established across
+epidemiological and global-exposure studies
+\citep{brunekreef2002,pope2006,brook2010,cohen2017,burnett2018,lelieveled2015,van_donkelaar2016,hammer2020},
+and short-horizon guidance is the operational basis of exposure warnings. The Arabian
+Gulf is an extreme and under-served case: recurrent mineral-dust outbreaks drive \pmtf{}
+and \pmten{} to episodic concentrations among the highest sustained levels worldwide
+\citep{draxler2001,gandham2020,gulf_dust_deposition2021,qatar_absorption2024,shahid2026,hopke2026},
+while the ground network is sparse, unevenly distributed and frequently interrupted.
+Where measurements are missing, services fall back on mechanistic chemical-transport
+models (CTMs) such as CAMS, which supply spatially complete first-guess fields but carry
+persistent errors from uncertain dust and anthropogenic emissions, coarse resolution and
+imperfect process representation
+\citep{inness2019,flemming2015,xu2021,liu2022,wang2024}. A residual correction that
+did transfer to unmonitored sites would therefore be operationally valuable,
+which is why the claim needs an instrument that can refute it.
+
+A substantial body of work post-processes CTM output with machine learning: systematic
+bias correction, observation--model fusion and model-output statistics
+\citep{xu2021,lyu2019,kow2022,bertrand2023,qiu2024,sayeed2025}. A growing set of
+hybrid schemes couples physics with learned residual, fusion or discrepancy terms
+\citep{wang2026,dimri2026,fang2023}, several of which report spatial generalization to
+unseen stations without site-specific recalibration \citep{wang2026}. Two features
+recur: the corrector is trained from scratch on a local observational record, so its
+skill is weakest where guidance matters most, at sparsely monitored sites, at newly
+commissioned stations, and at rare extreme episodes with few training examples
+\citep{sarafian2025,chelhaoui2025,aurora_china2026}. Pretrained time-series foundation
+models applied zero-shot \citep{ansari2024,das2023,feng2024}, Earth-system foundation
+models and neural weather prediction \citep{bodnar2025,bi2023,lam2023}, and regional
+forecast-accuracy evaluations \citep{ramos2026,yeon2026} address that weakness from a
+different direction, and monitoring-network evaluations of CAMS and related reanalyses
+report substantial surface biases against regulatory observations in a European hotspot,
+Iran, Malaysia and the southern Amazon
+\citep{gualtieri2025,kaffashzadeh2024,tan2023,nassarden2025}. What none of this work
+does is test whether the transfer it reports survives the withholding of near
+neighbours.
+
+We demonstrate the audit on a case with unusually clean structure: bias correction of the
+Copernicus Atmosphere Monitoring Service (CAMS) reanalysis over a dense 19-station
+\pmten{} network in Abu Dhabi, with a median nearest-neighbour separation of 6.5~km and
+strong residual spatial autocorrelation (Moran's $I=+0.78$ within 25~km). Because the
+value of a cold-start correction can only be judged against what is available when
+observations \emph{do} exist, we embed the audit in a complete short-horizon prediction
+benchmark over 24 site--pollutant series, comparing the raw and bias-corrected CAMS
+fields, the archived CAMS operational forecast, NASA MERRA-2, persistence and
+seasonal-naive references, and zero-shot time-series foundation models on identical
+rolling origins. That benchmark supplies the alternative approaches against which the
+correction must be judged, and it establishes the boundary (the regime with no local
+observations) in which the transfer question is the only question left.
+
+The headline result is about the temporal half of the audit, and it is not the half we
+expected to matter. A distance buffer alone makes the pooled cold-start gain over raw
+CAMS appear to \emph{reverse}, from a log error ratio of $+0.15$ with no buffer to $-0.33$
+once sources within 100~km are excluded, which reads as a demonstration that latitude and
+longitude carry memorised station identity. Adding contiguous time blocks recovers most of
+that, as we and others have reported. What we had not checked, and have not seen checked,
+is the guard band that separates a time block from its training data. Ours was three days,
+chosen to exceed a synoptic dust episode. The residual field of this network does not
+decorrelate on that scale: its autocorrelation is still $+0.19$ at three days and reaches
+$+0.08$ only at ten. Widening the guard to the measured scale removes the transfer result
+at every radius and for both feature sets, turning sign-test $q$ values of $0.006$ into
+$0.251$, while costing $11.6\%$ of the training data. The gain was temporal leakage. What
+survives is a direction rather than a level: coordinates are neutral while neighbours
+remain and grow costly as the buffer widens, consistently across the three units of
+inference we can defend, though the pattern does not itself clear multiple-comparison
+correction across the buffer ladder and we do not report it as an established difference.
+Two further conventions inside the same audit behave the same way. Calendar-equal time
+blocks leave three of six folds nearly empty on a record with missing months, and the
+flat-line threshold that removes repeated values deletes low-concentration air
+preferentially; moving either one to a measured setting also decides whether a gain is
+reported.
+The insight generalizes beyond this network and beyond air quality: wherever a residual
+correction is claimed to transfer across a monitoring network, a distance buffer with
+reported source counts, a temporal block, a coordinate-free control and a source-set
+stability check will
+separate transferable skill from spatial infilling, at no additional data cost. We report
+what the audit can and cannot establish from a single dense network, and state the
+network properties on which its behaviour should depend.
+\section{Materials and Methods}
+
+\subsection{Study region and ground observations}
+We assembled ground observations from the OpenAQ open-data archive for six candidate \pmtf{} sites across the Arabian Peninsula (Manama, Kuwait City, Dhahran, Doha and Abu Dhabi on the Gulf, and Jeddah on the Red Sea; 2016--2023), of which five had sufficient continuous history for rolling-origin evaluation (Abu Dhabi was excluded for too few valid three-hourly records), and for the 19-station Abu Dhabi Emirate regulatory \pmten{} network (2022--2023); the benchmark therefore covers 24 site--pollutant series. OpenAQ aggregates data from reference-grade regulatory and government-operated monitors: national-network stations for the \pmten{} series and, for several Gulf \pmtf{} series, US diplomatic-post (AirNow) instruments. Hourly records were quality-controlled by removing sentinel and negative values, then averaged onto the CAMS three-hourly time grid. No upper concentration cap was applied to \pmten{}: a fixed ceiling appropriate to fine particulate matter would delete genuine Gulf haboob peaks, and the record's largest event (15 consecutive hours above 1{,}300~\ugm{} at E11 Road on 2023-09-15, peaking at $2{,}978$~\ugm{} against a CAMS value of $124$~\ugm) is the single clearest illustration of the coarse-dust shortfall documented below. This yielded approximately $1.16\times10^{5}$ quality-controlled hourly \pmtf{} records, which reduce to $38{,}730$ matched three-hourly \pmtf{} samples (and $20{,}818$ for \pmten{}; Figure~\ref{fig:system}d); rolling-origin evaluation in turn draws $4{,}800$ \pmtf{} and $9{,}920$ \pmten{} forecast targets (SI). Hourly records, matched three-hourly samples and evaluated forecast targets form a series of successively smaller counts, and we report them separately to avoid ambiguity. We note that the \pmten{} network, while our densest and most complete, is a single regional cluster (median nearest-neighbour distance 6.5~km) observed over a single September--December 2023 window, which bounds the geographic and seasonal generality of the \pmten{}-specific conclusions. The window lies outside the climatological \emph{summer} Shamal maximum \citep{yu2016,gandham2020}, so the year's strongest outbreaks are unsampled; it does, however, contain winter Shamal activity, including a $1{,}626$~\ugm{} event on 16--17 December, so the evaluation is not free of major dust episodes. August 2023 was the highest-concentration month in the record (station mean $167$~\ugm) but falls outside the benchmark window because its observational coverage cannot satisfy the context-completeness requirement; the cold-start analysis, which uses each station's full matched record, does include it, and we flag this difference in evaluation period between the benchmark and the audit. As Figure~\ref{fig:system}d shows, coverage is sparse and intermittent. Both the foundation-model comparison and the cold-start audit are framed by that operational reality.
+
+\subsection{Mechanistic model: CAMS}
+The mechanistic component is the CAMS global reanalysis (EAC4), providing three-hourly surface \pmtf{} and \pmten{} at $0.75^\circ$ resolution \citep{inness2019,flemming2015,remy2019,benedetti2009,marecal2015}; we extracted the grid cell nearest each station and converted to \si{\micro\gram\per\cubic\metre}. EAC4 assimilates satellite aerosol optical depth and selected reactive-gas retrievals but does not assimilate the surface \pmtf{}/\pmten{} concentrations used here; the large station-level biases we report (up to $+37$ and $-121$~\ugm) are consistent with a field only loosely constrained at the surface by these measurements, although assimilation does not necessarily remove bias and representativeness error persists. We use the reanalysis rather than the CAMS operational forecast because it provides a homogeneous, openly archived multi-year record. One limitation bounds what the benchmark can claim: the reanalysis is constructed retrospectively and is not identical to a real-time operational forecast, which uses a different information set and may exhibit different, often larger, errors. EAC4 may therefore represent a comparatively strong retrospective CTM baseline, but its relationship to real-time forecast performance is not guaranteed. To probe this directly we also benchmarked the archived CAMS operational forecast for \pmten{} on the identical rolling origins (Section~``Robustness'' and Table~S14); it proved statistically indistinguishable from the reanalysis, indicating the reanalysis-versus-forecast distinction does not drive the dust results. We nonetheless frame all results as a \emph{retrospective benchmark} rather than an operational evaluation, since the operational-forecast check covers \pmten{} only.
+
+A second, distinct concern is that comparing a $0.75^\circ$ ($\approx$80~km) grid cell against a point monitor folds spatial-representativeness error into what we call ``CAMS bias'', potentially over-stating a model deficiency; and regulatory monitors are sited in urban, roadside and industrial microenvironments that for coarse-mode \pmten{} are sub-grid dust hotspots, so a coarse cell will under-shoot them by construction. We address this directly, and concede its valid core. Representativeness error is real and does inflate the largest single-station biases: the extreme values concentrate at urban/roadside sites (Al~Mafraq $-121$, E11~Road $-74$, Mussafah $-73$~\ugm) while remote desert stations are near-zero or positive (Sweihan $+37$, Liwa $+8$~\ugm), a signature consistent with siting. We therefore report the network-mean bias over the evaluated forecast points ($-23.6$~\ugm; Table~S13); the unweighted station-mean over the full matched record is $-27.5$~\ugm{} (Table~S1), the difference reflecting the evaluation subset rather than the weighting. We therefore report the network mean rather than the extreme, and treat the station-level bias as a \emph{point-predictability} gap rather than a pure indictment of dust emissions. The decisive point, however, is that the headline comparison does not depend on this at all. First, the result survives where representativeness is minimal: restricting to the nine \pmten{} stations whose CAMS bias is small ($|\text{bias}|\leq15$~\ugm, mean $|\text{bias}|$ $6.1$~\ugm), the best-represented sites, Chronos-2 still lowers MAE over CAMS by $68\%$ ($26.7\rightarrow8.6$~\ugm), essentially identical to the $69\%$ over all 19 (SI, Table~S18). The observation-driven advantage is therefore not an artefact of a few badly-sited hotspots. Second, representativeness mismatch is an \emph{intrinsic, irreducible} limitation of any coarse global CTM used pointwise, and is part of why an observation-driven nowcast, which reads each monitor's own series, dominates; the foundation-model and persistence advantage is computed against each station's own observations and is unaffected by grid representativeness. Third, neither resolution nor model family explains the gap. The finer ($\approx0.4^\circ$) CAMS operational forecast ties the $0.75^\circ$ reanalysis on the same origins (Table~S14), so a coarser grid is not the cause. And an \emph{independent} aerosol reanalysis from a different modelling system, NASA MERRA-2 (GEOS/GOCART, $0.5^\circ\times0.625^\circ$, finer than EAC4) \citep{gelaro2017,randles2017}, does not close the gap either. Because the MERRA-2 surface product resolves dust only as total (to $\sim$20~$\mu$m) and PM$_{2.5}$-mode, we evaluate two reconstruction scenarios: a PM$_{2.5}$-mode case that under-predicts coarse dust and a total-dust case that over-predicts \pmten{}. Bias-corrected MAE spans $25.9$--$101$~\ugm{} on the same origins (SI, Table~S19). This span is not a mathematical MAE bound, because bias-corrected MAE need not vary monotonically with the reconstructed concentration, but the most favourable scenario is still roughly twice the observation-driven nowcast ($13$~\ugm) and only modestly better than bias-corrected CAMS ($30.3$~\ugm). A finer, independent mechanistic model, even under a favourable dust reconstruction, therefore confirms rather than closes the regime map, because it lacks the recent observation, not because of its grid or family. On the choice of a global product, the CAMS regional ensemble is a European-domain product and does not cover the Arabian Peninsula, so the global reanalysis/forecast is the operationally available mechanistic baseline here; a bespoke high-resolution regional dust simulation (e.g., WMO SDS-WAS, WRF-Chem) is beyond our scope; published Middle East evaluations comparing the global assimilation products against high-resolution WRF-Chem simulations \citep{ukhov2020} indicate such a comparison would be a natural extension.
+
+\subsection{Foundation models and baselines}
+We evaluate pretrained TSFMs in zero-shot mode from two independent model families: the Chronos-2 and Chronos-Bolt models \citep{ansari2024} across all 24 series, and TimesFM \citep{das2023} from a separate family as a six-site cross-check (Table~S11). At each forecast origin a model receives the recent observation history of length $K$ and predicts $H=8$ steps (24~h). We compare six approaches: (i) \emph{raw CAMS}; (ii) \emph{bias-corrected CAMS} (rolling-mean residual removed); (iii) \emph{persistence} and (iv) \emph{seasonal-naive} (24~h) references; (v) \emph{FM on observations} (the foundation model applied directly to the observed series); and (vi) \emph{FM on the CAMS residual} (the model forecasts the observation-minus-CAMS residual, which is added back to CAMS). We also supply CAMS to Chronos-2 as a past-and-future covariate to test whether the mechanistic field helps the foundation model when both are available. Because foundation-model pretraining corpora are broad and not fully auditable, we cannot exclude prior exposure to public OpenAQ-like time series; persistence, seasonal-naive and CTM-only baselines therefore remain essential anchors for interpreting any zero-shot gain.
+
+\subsection{Evaluation, severity stratification and cold-start transfer}
+We use rolling-origin evaluation, consistent with standardized air-quality forecast-verification practice \citep{vitali2023}, and report mean absolute error (MAE) overall, resolved by lead time, and stratified by event severity (targets exceeding the station 95th percentile). Observations within a station are strongly autocorrelated, so the station is the coarsest unit at which resampling is defensible for the benchmark arm, and 95\% confidence intervals there are obtained by a station-level cluster bootstrap \citep{efron1979} (2000 resamples of stations with replacement); this makes each point estimate consistent with its interval and propagates between-station variability, which dominates the uncertainty. Pairwise model differences are summarised by the paired effect size Cohen's $d_z$ (mean over standard deviation of the per-station MAE difference) and a two-sided Wilcoxon signed-rank test \citep{wilcoxon1945}, with Benjamini--Hochberg and Holm corrections across the ten comparisons \citep{benjamini1995}. Because the \pmtf{} arm has only five stations (at which the smallest attainable Wilcoxon $p$ is $0.0625$), \pmtf{} comparisons are treated as descriptive effect sizes rather than confirmatory tests. Because raw MAE does not by itself convey exposure relevance, we evaluate \emph{alert detection} in two further ways: (i) formal WHO 24-h mean exceedance \citep{whoaqg2021}, where the eight-step forecast mean is compared with the observed eight-step mean; and (ii) instantaneous three-hourly operational tiers, including severe short-duration thresholds. The second analysis is an alert proxy, not a health-guideline metric and not a first-onset forecast-verification test. We report probability of detection (POD), false-alarm ratio (FAR) and critical success index (CSI) \citep{fawcett2006}, with the same station cluster-bootstrap 95\% intervals as MAE. To emulate an unmonitored site with \emph{zero} local history, we perform leave-one-station-out (LOSO) transfer: a gradient-boosted residual model trained on the full record of the remaining stations (features: CAMS value, hour and day-of-year sinusoids, latitude and longitude) predicts the held-out station's residual, which is added to its CAMS value. This is a retrospective spatial-transfer test rather than a prospective deployment. Because the \pmten{} network is spatially dense (median nearest-neighbour distance 6.5~km), LOSO risks rewarding spatial autocorrelation rather than genuine transfer. The residual field is indeed strongly spatially structured: Moran's $I$ on the station-level CAMS bias is $+0.85$ for neighbours within 15~km, $+0.78$ within 25~km, $+0.77$ within 50~km and $+0.47$ within 100~km (permutation $p<0.001$ in each case, $9{,}999$ permutations, $E[I]=-0.06$), and $+0.49$ under inverse-distance weights ($p=0.026$), so the buffer ladder spans the range over which that structure decays. We therefore repeat the analysis with a distance buffer, excluding all source stations within radius $R\in\{0,25,50,100\}$~km of the target, and again with a coordinate-free feature set (latitude and longitude removed), which together separate near-neighbour interpolation from transferable bias correction (Table~S6). A distance buffer alone, however, is not sufficient, and establishing that is part of what we report. Source and target stations that are spatially separated may still be observed at the \emph{same times}, so a learner given a date encoding can look up the network-wide residual at the target's timestamp from a surviving source, which is temporal co-location rather than transferable skill. Our record spans a single year, in which the day-of-year sinusoids are a bijection onto the date and therefore act as a lookup key rather than as seasonality; at a 100~km buffer every target timestamp is still present at some surviving source. We therefore add a second control: the target's record is divided into six contiguous time blocks, and each block is predicted from a model fitted only to source data outside that block and outside a guard band on either side. The guard is set from the measured lag autocorrelation of the observation-minus-CAMS residual rather than from an assumed episode duration: ten days, where that autocorrelation reaches $+0.08$ (SI, Table~S30). A three-day guard, chosen instead to exceed the duration of a synoptic dust episode, leaves it at $+0.19$, and we report both settings throughout (Table~S6). Blocks are taken at quantiles of each target's own timestamps rather than at equal calendar intervals, because this record has four months with no observations at all. A third control removes a confound specific to gridded mechanistic fields. Because CAMS is sampled at the nearest $0.75^\circ$ cell, stations sharing a cell carry \emph{identical} covariate series: 15 of the 171 station pairs here, involving 16 of the 19 stations, at separations up to 46~km. The CAMS value therefore encodes location on its own, and a coordinate-free feature set is not location-free. We therefore also report a leave-one-grid-cell-out stage in which every source sharing the target's cell is withheld. The audit we propose is the conjunction of these three controls together with the per-radius source-station count; it requires no data beyond what any leave-one-station-out evaluation already uses, and the buffer ladder is set by the estimated range of residual spatial autocorrelation rather than by convention. Uncertainty on every gain is a station cluster bootstrap (2000 resamples), tests within the audit family are Benjamini--Hochberg corrected across the twenty-four comparisons of the audit family, with the sign test and the Wilcoxon test corrected as separate families, and stability is assessed by resampling the \emph{source-station set} rather than the random seed, so that the diagnostic applies to the deterministic estimator that produces the reported values.
+
+\section{Results and Discussion}
+
+\subsection{CAMS bias is large, heterogeneous, and pollutant-dependent}
+Across sites, CAMS bias ranges from $+3.8$ to $+36.9$~\ugm{} for \pmtf{} (systematic over-prediction, largest in the northern-Gulf dust-and-industry corridor around Kuwait) and from $-121$ to $+37$~\ugm{} for \pmten{}, where CAMS strongly \emph{under-predicts} mineral dust (Figure~\ref{fig:system}a,c). The sign reversal between pollutants is central: because CAMS over-predicts \pmtf{} but under-predicts coarse dust \pmten{}, no single blanket correction can serve both, and it defines the structured residual that any data-driven corrector must learn. The two arms differ in pollutant, in site set and in period (five cities over 2016--2023 versus one autumn--early-winter cluster in 2023), so the sign reversal is partly confounded with sampling; because the largest Gulf dust events occur in spring and summer, the autumn window if anything under-states the \pmten{} deficit. This pattern is atmospherically interpretable rather than just algorithmic: coarse-mode \pmten{} at urban and roadside monitors is sensitive to sub-grid dust resuspension, particle-size partitioning, humidity-dependent aerosol water and local representativeness, whereas regional \pmtf{} includes secondary and combustion components whose surface biases can have the opposite sign. Temporal correlation with observations is only weak-to-moderate (station-level $r$ for the \pmten{} network ranging $0.11$--$0.52$; Table~S7), confirming that a large, partly learnable error remains in both the level and the timing of the CTM fields.
+
+\subsection{Recent observations, not the mechanistic field, drive the nowcast}
+Wherever recent observations exist, a nowcast built on those observations is far more accurate than the chemical-transport model (Figure~\ref{fig:dominance}). A pretrained foundation model applied directly to the observed series attains overall \pmtf{} MAE $14.8$~\ugm{} (95\% CI $11.4$--$18.9$) for Chronos-2, against $26.4$~\ugm{} ($17.8$--$37.7$) for raw CAMS, $23.1$ for bias-corrected CAMS, $16.5$ for persistence and $18.9$ for seasonal-naive; for \pmten{} it reaches $13.3$~\ugm{} ($10.2$--$17.6$) against $43.0$ ($33.3$--$55.4$) for CAMS. Persistence, which requires a defined immediately preceding observation, is scored on the $9{,}480$ of $9{,}920$ \pmten{} points where one exists; the $440$ excluded points follow a data gap and are the cases least favourable to persistence, so the persistence--foundation-model comparison below is, if anything, conservative against the foundation model. The margin over the CTM is large and consistent (Table~S2): the paired effect size is Cohen's $d_z=1.49$ for \pmten{} (Wilcoxon $p<0.001$ after Benjamini--Hochberg correction, 19 stations; Figure~\ref{fig:dominance}b), while for \pmtf{} $d_z=1.37$ is reported descriptively because the five-station arm cannot reach significance ($p=0.062$; Methods). Because all \pmten{} origins fall within a single late-2023 (September--December) dust period and one 6.5~km station cluster, these statistics quantify within-season, within-region skill rather than cross-region generalisation; to confirm the gap is not an artefact of ignoring synoptic dependence, we also resampled whole dust \emph{episodes} (12 multi-day blocks, the independent units for dust, defined as maximal runs of origins separated by no more than 36~h) in an episode-block bootstrap; its per-model intervals differ from the station-cluster intervals (episode resampling holds the station panel fixed, so between-station variance is not resampled and some intervals narrow), but the paired raw-CAMS$-$Chronos-2 pooled-MAE gap remains $29.8$~\ugm{} (95\% CI $28.7$--$31.5$) and excludes zero (SI, Table~S16). The verdict is robust across the two Chronos variants, which agree across all 24 series (Table~S2), and is corroborated by an independent-family model, TimesFM, run zero-shot as a six-site spot-check that reproduces the same large CAMS gap (Table~S11).
+
+We stress an honest qualification that sharpens rather than weakens the message: the decisive factor is the \emph{use of recent observations}, not the sophistication of the model. A trivial persistence baseline also beats CAMS by a comparable margin ($d_z=1.53$ for \pmten{}, $p<0.001$), and head-to-head the foundation model's advantage over persistence is negligible: for \pmten{} the two are statistically indistinguishable ($13.3$ vs.\ $13.0$~\ugm; $d_z=-0.12$, $p=0.52$, 95\% CI on $d_z$ approximately $[-0.60,+0.36]$; the foundation model wins at only 8 of 19 stations), which we read as unresolved rather than as evidence of equivalence: the interval excludes neither a moderate foundation-model advantage nor a moderate persistence advantage, and the ordering is metric-dependent (under RMSE the foundation model leads, $41.5$ vs.\ $43.0$~\ugm; Table~S13), and for \pmtf{} the effect size is large but the absolute difference is small ($1.7$~\ugm) and the sample is too small ($n=5$) to be conclusive. The practical value of the foundation model is therefore not that it uniquely ``wins,'' but that it delivers this observation-driven skill zero-shot and uniformly (across both pollutants and two independent model families, with no per-site fitting) and remains competitive down to very short context. The advantage over CAMS holds across the entire context range tested ($K=2$--$32$; Figure~\ref{fig:dominance}c): the foundation model beats CAMS even from a two-observation window, although its own accuracy improves as the context lengthens. Supplying CAMS as a covariate does not materially improve the foundation model; its only advantage is $0.2$~\ugm{} at the longest context tested ($K=32$), and at very short context it degrades the forecast. Even bias-corrected CAMS, which already folds in the recent-observation mean and is thus itself partly observation-driven, is beaten by the foundation model ($d_z=1.75$ for \pmten{}, $p<0.001$); the decisive factor is therefore not merely access to recent observations but how directly they drive the forecast. In this monitored-site setting, then, the CTM and its residual hybrids did not improve routine short-horizon accuracy over an observation-driven nowcast.
+
+\subsection{Detection skill: WHO 24-h mean and short-duration episodes}
+Error in \ugm{} matters for warnings only insofar as it changes which exceedances are flagged, so we also evaluate threshold detection (SI Figure~S2; full treatment in SI, Section~S10). On the formal WHO 24-h mean test the picture follows the accuracy result: raw CAMS detects about seven in ten \pmten{} exceedance windows (POD $0.72$, 95\% CI $0.61$--$0.83$) against near-complete detection for observation-driven nowcasts (POD $0.97$), and because the base rate here is high ($90.2\%$ of origin-level 24-h means exceed the guideline) we report chance-corrected scores alongside CSI: the equitable threat score is $0.06$ for raw CAMS against $0.53$--$0.56$ for the observation-driven nowcasts (persistence $0.56$, Chronos-Bolt $0.53$, Chronos-2 $0.54$) and $0.27$ for bias-corrected CAMS, so the CTM has essentially no skill beyond an always-alarm rule on this subset. On instantaneous three-hourly tiers, which are operational rather than health metrics, the same ordering holds and the severe short-duration dust tier is where the reanalysis is weakest (Tables~S9, S12).
+
+
+\subsection{Boundaries I: extreme episodes and lead time}
+The mechanistic model regains value at two boundaries (Figure~\ref{fig:boundaries}). During extreme episodes (targets above the station 95th percentile), autoregressive models, which extrapolate from a low recent history, can lag a sudden surge. For \pmtf{} the central ranking inverts and raw CAMS becomes the more accurate model ($68.3$~\ugm, 95\% CI $38.2$--$101.3$, vs.\ $91.2$, $54.4$--$134.0$, for the foundation model), and the foundation-model/CAMS error ratio crosses unity above the 95th percentile (Figure~\ref{fig:boundaries}d); we emphasise that these extreme-subset intervals overlap substantially, so this is a shift in central tendency and a loss of the foundation model's advantage rather than a statistically resolved reversal. It is also partly an artefact of how the subset is defined. Conditioning on high \emph{observed} values favours a positively biased predictor, the classic forecaster's dilemma \citep{lerch2017}, and raw CAMS is positively biased for \pmtf{} ($+13.4$~\ugm). Removing only each site's own mean bias worsens its extreme-subset error at all five sites (station-mean MAE $56.9\rightarrow64.8$~\ugm), so roughly eight of the apparent advantage is bias fortuitously cancelling at high targets rather than physical information. This is also the one regime in which the CTM is credited, and therefore the one most sensitive to our use of the EAC4 reanalysis: because reanalysis assimilates within-window information unavailable to a real-time forecast, an operational CAMS product might show a weaker \pmtf{} crossover, so the physics advantage at the extreme should be read as an upper bound. For \pmten{} dust extremes the foundation model still wins, because CAMS under-predicts dust so severely that even a lagging forecast is closer; the error ratio never crosses one. A Kuwait City dust storm illustrates the limitation of purely autoregressive nowcasting (Figure~\ref{fig:boundaries}c): observations surged to $653$~\ugm{} while the foundation-model forecast, anchored near a recent baseline of $\sim$15~\ugm{}, remained near $\sim$19~\ugm{}. The closer EAC4 value in this case demonstrates that a field independent of local recent observations can retain information during abrupt episodes, but it is not by itself evidence of real-time onset prediction. The foundation-model advantage is also greatest at the shortest lead and decays monotonically with horizon (Figure~\ref{fig:boundaries}a) as the informativeness of recent observations fades. CTMs are therefore natural candidates for longer-lead and onset-oriented evaluation, even though that specific onset skill is not quantified here.
+
+\subsection{Boundaries II: auditing the cold start, and what the buffer invents}
+At a site with no monitor at all the foundation model cannot run, and only the mechanistic model is available (Figure~\ref{fig:conventions}). A residual correction transferred from other stations lowers the pooled cold-start error over raw CAMS, by $35.8\%$ for \pmtf{} and $12.0\%$ for \pmten{} (Table~S10), and improves 16 of 19 \pmten{} sites individually (median per-station gain $+15.6\%$, station-bootstrap 95\% CI $[+13.9,+32.5]$, 16/19 wins, exact two-sided binomial $p=0.004$, Wilcoxon $p=0.018$; Table~S7). Percentage gain and the log error ratio $\Delta$ used in the audit below are the same quantity on two scales, related by $\Delta=-\log(1-g/100)$, and because that map is monotone the median and its percentile interval convert exactly: the $+15.6\%$ median is $\Delta=+0.170$ and the interval $[+13.9,+32.5]$ is $[+0.150,+0.393]$. We quote percentages in this section, where they are the conventional summary, and $\Delta$ in the audit, where the symmetry matters, and give the conversion at each point where the two meet. The corresponding \emph{mean} gain, $+4.7\%$, has a 95\% interval of $[-28.0,+25.9]$ that includes zero: percentage gain is bounded above by $100\%$ but unbounded below, so a single badly over-corrected station (Ruwais, $-244.1\%$) dominates it. We therefore treat the median and the win rate as the summaries of record and report the mean only for completeness (excluding Ruwais it is $+18.6\%$). The size of the gain is \emph{not} predicted by how biased CAMS is at the target: across the 19 stations the rank correlation between $|\text{CAMS bias}|$ and transfer gain is $-0.13$ (Spearman; Pearson $+0.18$, and $-0.23$ with Ruwais excluded), and four of the five largest gains occur at near-unbiased sites (Table~S7). But two caveats bound this benefit. First, it is a double-edged sword: at the near-unbiased Ruwais site the transferred correction inflates concentrations far above the observations (per-station gain $-244\%$; Table~S7), so the mean gain is sensitive to damaging over-correction at a small number of near-unbiased sites. Second, and more fundamentally, buffering the design changes the answer. A buffer on distance alone, though, changes it for the wrong reason, and separating those reasons is the substance of what follows.
+
+With a distance buffer only, the pooled gain appears to \emph{reverse}: $+12.0\%$ at $R=0$, $+3.5\%$ at 25~km, $-10.0\%$ at 50~km and $-39.3\%$ at 100~km, while a coordinate-free feature set stays positive throughout ($+22.3\%$ to $+9.3\%$). Read at face value this says that coordinates carry a memorised structure the buffer destroys, but the picture is more complicated than that. A feature ablation locates the coordinate-free gain entirely in the day-of-year term: CAMS alone gives a median gain of $-0.4\%$ (9/19 stations) and CAMS with hour-of-day $-1.6\%$ (9/19), whereas CAMS with day-of-year gives $+31.0\%$ (16/19), indistinguishable from the full coordinate-free set (Table~S21). Over a single-year record the day-of-year sinusoids identify the date, and at a 100~km buffer every target timestamp remains present at some surviving source, so what the coordinate-free model retains under a spatial buffer is in part a lookup of the network-wide residual at the target's own timestamp.
+
+Adding the remaining two controls changes the answer, and the control that changes it is not the one we expected. We report the log error ratio $\Delta=\log(\mathrm{MAE_{raw}}/\mathrm{MAE_{transfer}})$, fixed before the analysis: a station whose error doubles contributes $-0.69$ against the $+0.69$ of a station whose error halves. For orientation, $\Delta=+0.13$ is a $12\%$ error reduction.
+
+Two choices inside the temporal control had been made by convention rather than measured, and both matter. The first is the block boundary. Calendar-equal blocks leave three of the six folds nearly empty at every station, because the record has months with no observations at all --- at station 369959, for instance, they hold 9, 4 and 7 points --- so a nominal six-fold control was really three-fold; blocks taken at quantiles of the target's own timestamps hold 170 to 190 points, a within-station imbalance ratio of $1.01$ against a median of $124$ for the calendar version. The second is the guard band. Three days was chosen to exceed a synoptic dust episode, but the residual field of this network does not decorrelate on that scale: its median autocorrelation is $+0.87$ at three hours, falls below $1/e$ at one day, then plateaus near $+0.20$ out to a week and reaches $+0.08$ only at ten days (SI, Table~S30). A three-day guard therefore leaves roughly a fifth of the residual correlation standing across the block boundary.
+
+Setting the guard from that measurement rather than from the episode duration removes the transfer result (Table~S6). With a three-day guard and everything else held fixed, both feature sets are significant against zero at the two narrowest radii: median $\Delta=+0.192$ and $+0.143$ with coordinates and $+0.181$ and $+0.161$ without, cell-block intervals excluding zero, and sign tests surviving Benjamini--Hochberg correction across the twenty-four cells of the audit family ($q=0.006$ and $q=0.008$). With a ten-day guard nothing is significant at any radius under either feature set ($q\geq0.251$ throughout, and $q\geq0.413$ on the Wilcoxon rank test). The obvious alternative explanation does not hold: the wider guard costs $11.6\%$ of the training data, from a median of $11{,}068$ samples per fold to $9{,}789$, which is not a loss that turns $q=0.006$ into $q=0.251$. What the wider guard removes is temporal leakage, not statistical power.
+
+We therefore report no cold-start transfer gain for this network. That is a stronger statement than the one we set out to make, and it is the one the data support once the temporal control is specified from the residual field instead of from a rule of thumb.
+
+What survives is a direction rather than a level, and we are careful not to overstate it. Testing the paired difference $\Delta_{\text{coordinate-free}}-\Delta_{\text{coordinate-bearing}}$ directly, rather than comparing each specification's significance against zero, the coordinate-free specification is indistinguishable from the coordinate-bearing one where every neighbour is available (11 of 19 stations at $R=0$, sign $p=0.65$) and ahead of it at every radius beyond that: 15 of 19 at 25~km ($p=0.019$), 14 of 19 at 50~km ($p=0.064$), 13 of 19 at 100~km (Wilcoxon $p=0.036$), with 7 of the 9 covariate cells favouring it at each of the three. The direction is consistent, but it does not clear correction: applying the same Benjamini--Hochberg treatment across the four radii that we apply to the tests against zero, the smallest $q$ is $0.077$ on the sign test and $0.144$ on the Wilcoxon test. We report this as a pattern that runs the way a feature supporting interpolation but not extrapolation should run --- neutral while neighbours remain, costly as the buffer widens --- and not as an established difference. Correcting one family and not another would be the same selective treatment this section is about.
+
+A third convention behaves the same way, and that is what persuades us the pattern is general rather than a property of the guard band alone. The flat-line rule that removes repeated values is a free parameter, and moving it changes the verdict. Our primary threshold removes runs of six or more identical consecutive observations, $1.2\%$ of the record; a threshold of three, which is the value most quality-control schemes use for hourly data, removes $9.9\%$. Under the aggressive threshold the coordinate-free specification becomes significant again ($q=0.011$ at zero buffer and $q=0.035$ at 100~km). It does so because the observations it deletes are not a random sample: their median is $60$~\ugm{} against the network's $74$, and only $9.8\%$ of them exceed $100$~\ugm{} against $28.5\%$ of the record, so removing them raises the retained mean absolute CAMS error from $46.6$ to $48.4$~\ugm{}. A residual correction has more room to help in a higher-error regime, and the threshold manufactures the gain rather than revealing it. We keep the conservative rule and report the aggressive one beside it (SI, Table~S31).
+
+Three checks ask whether the audit's own controls are doing what we claim (Figure~\ref{fig:checks}). The first is a question of geometry: plain leave-one-station-out holds out a station whose nearest training neighbour is a median $6.5$~km away, while an unmonitored site in this region sits a median $35.0$~km from the nearest monitor, so the unbuffered design validates interpolation at a scale deployment never presents; every rung of our ladder, from $48.3$~km at zero buffer to $108.1$~km at 100~km, is at least as demanding as deployment. The second is the coordinate permutation placebo, now run under the reported specification with 99 draws per radius so that a $p$ below $0.05$ is attainable. At zero buffer the true coordinate assignment sits at the 59th percentile of its own null and is indistinguishable from a geographically scrambled one ($p=0.90$), which confirms from a second direction what the feature ablation found: the coordinates add nothing the day-of-year term does not already supply. At a 100~km buffer the true assignment sits at the 10th percentile and 89 of 99 scrambled assignments beat it, the signature of extrapolation beyond the region the surviving sources span, though at this sample size that direction is not itself significant (one-sided $p=0.11$). What the placebo establishes is the change of sign along the ladder, not either endpoint. The third check moves the CAMS grid origin over seven offsets: the number of station pairs sharing a cell moves between 15 and 31, but the median $\Delta$ moves by at most $0.058$ log units at zero buffer and not at all at 100~km, so the grid-cell stage is picking up covariate sharing rather than the position of the grid (Table~S33).
+
+So three parameters inside this audit are set by convention rather than measured, and any one of them decides whether a transfer gain is reported: the guard band, the block boundaries, and the flat-line threshold. None of them is the model, the buffer or the feature set, which is where an audit's attention usually goes. That, rather than any conclusion about coordinates, is what we would ask a reader to take from this network.
+
+We make the paired comparison the reported one because the alternative is a known error. Selecting between two specifications by asking which of them clears a threshold against zero is not a comparison of the two: the difference between significant and not significant is not itself significant \citep{gelman2006}. An earlier version of this analysis did that, and the three units of inference we examined appeared to disagree with one another as a result. Under the paired test they do not disagree: stations, cell medians and a cell block bootstrap all place the coordinate-free specification ahead at wide buffers and none of them separates the two at zero buffer.
+
+Reported source-station counts per buffer (Table~S6) confirm none of this is training-data starvation: at the widest buffer the median target still retains 13 of 18 possible source stations (minimum 7). The relation to prior work is now precise. \citet{mila2024proxies} showed that random forests with spatial proxies are poorly suited to spatial extrapolation in mapping tasks; we find the same fragility when the transferred quantity is a correction to a mechanistic field, but we also find that a spatial buffer alone, the instrument that fragility is usually demonstrated with, attributes to coordinates an effect that is substantially temporal and partly grid-induced. The conservative conclusion is that the CTM's cold-start value is real but narrow: mostly spatial infilling, with only a modest generalizable residual skill. Read as a deployment rule rather than a null result, this is actionable: it delimits CTM use to unmonitored locations: those with no monitor within tens of kilometres. It does \emph{not}, however, license a gate based on local CTM bias in the unbuffered configuration: with every source station available, the transfer gain is uncorrelated with target-site $|$CAMS bias$|$ (Spearman $-0.13$, $p=0.59$), so bias is not a screening variable there. That association is not constant across the buffer ladder, which is the more interesting observation, but it must be reported with the correction the ladder demands. The rank correlation rises monotonically with radius and is largest at the radius that actually corresponds to an unmonitored site (Spearman $+0.53$, uncorrected $p=0.021$ at $R=100$~km under the full control; $+0.68$, $p=0.0014$ under the spatial-only design; Table~S23). Applying Benjamini--Hochberg across all sixteen cells of this correlation family, however, only the spatial-only $R=100$~km cell survives ($q=0.023$); the full-control cell we would rely on operationally does not ($q=0.12$). We therefore state the mechanism as a hypothesis the data are consistent with rather than as an established gate: at wide buffers the correction is learned from a source population that may not contain the target's siting regime, and it is the near-unbiased desert sites, not the biased urban ones, that are damaged. The rule we can defend on this evidence is the distance gate alone; a second gate on the target's own mechanistic-model bias falling outside the range spanned by the source stations is a plausible refinement that requires a network with more than 19 sites to establish. Consistent with the reliability reading, the coordinate-free specification is the less bias-sensitive of the two at wide buffers ($+0.26$, $p=0.29$).
+
+\subsection{Robustness: operational forecast and cross-region consistency}
+Two checks address the largest external-validity concerns for a reanalysis-based, single-region benchmark; both are reported in full in SI, Section~S11. Substituting the archived CAMS \emph{operational forecast} for the reanalysis on the identical rolling origins changes nothing that matters: MAE $41.6$~\ugm{} (95\% CI $34.6$--$50.8$) against $43.0$ ($33.5$--$54.9$), still roughly three times the observation-driven nowcast error, with the operational product flagging more exceedances (POD $0.92$ vs.\ $0.72$) only by over-forecasting and trailing on balanced skill. And the ordering reproduces per country, so the pooled result is not carried by one national network. The regime map is therefore not an artefact of the reanalysis choice or of a single network (Tables~S14, S15, Figure~S1).
+
+
+\subsection{Atmospheric interpretation: why the observation stream dominates}
+The pattern of wins and losses is physically coherent rather than a generic machine-learning artefact, and we set it out in SI, Section~S12. In short: Gulf \pmten{} is dominated by episodic coarse-mode mineral dust emitted at scales far below an $0.75^\circ$ cell, so a global CTM inherits a structural surface under-prediction that column-AOD assimilation does not constrain (network-mean bias $-23.6$~\ugm{}, largest at urban and roadside sites), while \pmtf{} is over-predicted at all five sites; a monitor's own recent history, by contrast, encodes the local emission and transport state directly, which is why an observation-driven nowcast dominates wherever such history exists, and why the mechanistic field regains value where that history is uninformative: at onset, at longer lead and at unmonitored sites.
+
+
+\section{Implications for monitoring and prediction practice}\label{sec:implications}
+Air-quality services for data-sparse, high-exposure regions such as the Gulf increasingly ingest CTM fields as a backbone. Our retrospective benchmark points to a candidate change in practice that would need confirmation with prospective operational forecasts. Wherever even a short local observation record exists (a handful of recent three-hourly measurements), a nowcast built on those observations was more accurate than the CTM or any CTM-residual hybrid in this evaluation, using off-the-shelf models without site-specific training. In exposure-relevant terms, on the formal WHO 24-h mean test the CAMS reanalysis detected about seven in ten \pmten{} guideline days here, versus $\sim$97\% for observation-driven nowcasts, while the operational forecast detected more events (POD $0.92$) by over-forecasting and still trailed on CSI; and the reanalysis showed very low retrospective skill for short-duration severe-dust episodes. These figures pertain to this benchmark and region rather than to any specific deployed system. Because a simple persistence baseline captures most of the accuracy benefit, the upgrade does not require large models or specialist infrastructure, a point that lowers the barrier for under-resourced services, while a pretrained foundation model adds the convenience of uniform, zero-shot, multi-pollutant skill. A hard boundary for warning, however, is that this accuracy advantage is target-based and retrospective: a persistence-like nowcast can recognize dust that is already underway but can still miss the first rise from a low recent baseline. Our data therefore support routine observation-driven nowcasting, not a claim that autoregressive models provide onset warning. Conversely, CTMs are the physically plausible source of upwind-transport information for onset guidance, but first-exceedance lead-time skill was not quantified here and should be measured prospectively. The mechanistic field likewise retains complementary value at abrupt \pmtf{} extremes, where autoregressive models lag a surge and CAMS is centrally competitive (with overlapping uncertainty), and as first-guess fields at unmonitored locations, though we show that the transferred cold-start correction is mostly near-neighbour spatial infilling. A pragmatic system might therefore \emph{route by regime}: observations where they exist, CTM fields or blends for unmonitored coverage and explicit onset testing, and bias-aware transferred corrections only where nearby monitors and local CTM bias justify them. Framed this way, foundation models do not render mechanistic air-quality models obsolete; our results delineate where, in this retrospective setting, observations already suffice.
+
+A reader who takes the view of \citet{wadoux2021} will want the opposite objection put
+squarely, so we put it here rather than leaving it in the introduction. Their argument is
+that for estimating the accuracy of a map over a defined area, probability sampling is the
+correct instrument and spatially blocked designs are pessimistically biased: they hold out
+what the model would in practice have had, and so understate skill. If that objection
+applies to us, our null result is an artefact of the design and not a property of the
+correction. Three measurements bear on it, and we report them because they are the ones
+that could have gone the other way.
+
+First, the pessimism charge is testable against the deployment this paper is about, and
+here it fails in the direction that matters. Drawing $20{,}000$ locations uniformly from
+the network's bounding box, an unmonitored site in this region sits a median $35.0$~km
+from the nearest monitor. Plain leave-one-station-out holds out a station whose nearest
+training neighbour is $6.5$~km away --- optimistic by $28.5$~km --- while the narrowest
+rung of our ladder already stands at $48.3$~km and the widest at $108.1$~km
+(Figure~\ref{fig:checks}a). Our designs are therefore not more pessimistic than
+deployment; they bracket it. A design that is stricter than the use case is the
+conservative choice for a claim of the form ``this correction transfers to a site with no
+monitor'', which is a claim about extrapolation and not an estimate of map accuracy over a
+sampled area. The two literatures are answering different questions, and on ours the
+buffered design is the one that can be made to fail.
+
+Second, the specific mechanism the objection proposes --- lost training data --- does not
+account for the size of the change. Widening the guard band from three days to ten costs
+$11.6\%$ of the training rows, a median of $11{,}068$ samples per fold falling to
+$9{,}789$, and moves the sign-test $q$ from $0.006$ (coordinate-bearing) and $0.008$
+(coordinate-free) to $0.251$ at every radius. A power loss of that size does not turn a
+result that clears correction into one that misses it by a factor of thirty. What the wider guard removes is the residual
+autocorrelation still standing at three days ($+0.19$, against $+0.08$ at ten), which is
+leakage across the fold boundary rather than information the model was entitled to.
+
+Third, the verdict does not move with the arbitrary elements of the design. Shifting the
+CAMS grid origin over seven offsets changes the number of station pairs sharing a cell
+between 15 and 31 but moves the median $\Delta$ by at most $0.058$ log units at zero
+buffer and not at all at 100~km (Table~S33), and the coordinate-permutation placebo
+returns the true assignment at the 59th percentile of its own null at zero buffer and the
+10th at 100~km (Figure~\ref{fig:checks}b) --- a change of sign, not a uniform suppression.
+A design that was simply destroying signal would not reproduce that pattern.
+
+None of this settles the wider disagreement, and we do not claim it does. What we claim is
+narrower: on this network, for this estimand, the objection can be checked rather than
+argued, and the checks are cheap enough that any audit reporting a transfer result could
+run them.
+
+\section{Conclusions}
+This study set out to answer two coupled questions, and both answers are boundaries rather than victories. On the first (whether a chemical-transport field adds short-horizon accuracy once recent observations exist), benchmarking two Chronos variants (with a TimesFM cross-check) against the CAMS reanalysis for \pmtf{} and \pmten{} yields a regime map rather than a single winner. On the second question, how much of an apparently transferable residual correction is genuine transfer, the answer for this network is none that we can establish, and the reason is instructive. A distance buffer alone suggests a dramatic reversal with coordinates (log error ratio $+0.15$ at $R=0$ to $-0.33$ at 100~km) against a coordinate-free specification that stays positive, and contiguous time blocks remove most of that apparent collapse. The temporal control has two parameters that are usually set by convention, and both turned out to carry the result. Calendar-equal blocks left three of six folds nearly empty at every station, because the record has empty months, with a median largest-to-smallest ratio of $124$; quantile blocks hold 170 to 190 points, a ratio of $1.01$. A three-day guard band, chosen to exceed a dust episode, leaves the residual autocorrelation of this network at $+0.19$, since it falls to $+0.08$ only at ten days. With the guard set from that measurement the transfer gain disappears at every radius and for both feature sets, sign-test $q$ values moving from $0.006$ to $0.251$, at a cost of $11.6\%$ of the training data. A loss of power that small does not account for a change that large, so what the wider guard removed was leakage. What survives is a direction, not a second result: tested as a paired difference rather than as two separate contrasts against zero, coordinates are indistinguishable from their absence while every neighbour is available (11 of 19 stations at $R=0$) and behind it at every wider radius (15 of 19 at 25~km, 14 of 19 at 50~km, 13 of 19 at 100~km). Corrected across those four radii as the tests against zero are corrected, that pattern does not reach significance either (smallest $q=0.077$), and we report it as a direction rather than a finding. 
+
+Where recent observations exist, an observation-driven nowcast matched or beat the CTM and its residual hybrids for routine short-horizon accuracy, consistently across model families and, for \pmten{}, no better than a persistence baseline; the mechanistic field retained central (though uncertainty-overlapping) value only at abrupt \pmtf{} extremes, at longer lead, and at cold-start sites, where the apparent transfer benefit reduces largely to near-neighbour spatial interpolation. These explicitly drawn boundaries are themselves the contribution. The regime map proved robust to the CAMS product (for \pmten{} the archived operational forecast matched the reanalysis on the same origins) and to the choice of national network; confirming it for \pmtf{} operational forecasts and in regions and seasons beyond the Arabian Peninsula is the natural next step before operational adoption. 
+
+The transfer diagnostic carries beyond this dataset more readily than the regime map does: wherever a residual correction is claimed to generalize across a monitoring network, reporting it against a distance buffer and a coordinate-free control, with the buffer ladder set by the estimated range of residual spatial autocorrelation, separates transferable skill from interpolation at no additional data cost. Five of these lessons concern the evaluation design rather than the system modelled, so they can be checked on any station network with the data already in hand; whether each one bites in a given network is an empirical question, and we establish only that it bites in ours. First, a distance buffer on its own is not a sufficient audit, and can be actively misleading: here it produced an apparent sign reversal that was substantially temporal co-location, and attributed to coordinates a collapse that a time block and a grid-cell stage remove. An audit that reports a large coordinate penalty from a buffer alone should be assumed to be overstating it until time is controlled. Any station network observed simultaneously admits this path, and a date encoding is enough to exploit it, so a spatial buffer should be reported together with a temporal block and a guard band. Where the covariate is a gridded model field, a leave-one-grid-cell-out stage should accompany them, because stations sharing a cell share an identical predictor series; on this network that stage binds only below 50~km, and which regime applies follows from the cell size and the buffer without any fitting. 
+
+Second, the guard band is a parameter of the audit and not a formality, and it should be set from the measured autocorrelation of the residual field rather than from the duration of the physical events that generate it. Those two scales differ here by a factor of three, and the whole transfer result sits in the gap. Computing the residual autocorrelation costs seconds and is the cheapest insurance in this design. Third, the unit of inference must respect covariate sharing in the same way the folds do: stations, cell medians and a cell block bootstrap are all defensible with 19 stations in 9 cells, and reporting all three costs minutes. Where they agree, as they do here under a paired test, the claim is safe; where they appear to disagree, check first that the comparison being made is a paired one, because contrasting two separate significance verdicts against zero produces disagreement that a direct test does not show \citep{gelman2006}. 
+
+Fourth, permuting station coordinates among stations is a cheap test of what a coordinate feature is doing, provided it is run against a permutation null rather than a handful of draws and at more than one buffer radius. Ours took 99 draws at each of two radii to become readable at all; at 30 draws the floor on the $p$ value was $0.032$ and neither endpoint could be resolved. The sign of the true-minus-scrambled difference, as a function of radius, separates a coordinate feature that is interpolating from one that is extrapolating into damage, and the radius at which that sign changes is a deployment threshold. Fifth, stability under resampling of the \emph{source set} (not of the random seed, which carries no information for a deterministic estimator) separates a transferable mapping from a memorised one, and it does so where a comparison of central tendency cannot: here the two specifications were indistinguishable in the median while the coordinate-bearing one was three to five times the more variable across source sets. We have not established the network geometries over which these effects are large; the demonstration here is a single dense cluster, and a simulation study spanning network densities and record lengths is the natural way to bound them.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{Fig1.png}
+\caption{\textbf{Study system and CAMS bias.} (a) Monitoring network (\pmtf{} circles, \pmten{} squares) coloured by CAMS bias; the Red Sea site (Jeddah) lies west of the frame. (b) Station-level CAMS bias for all 24 site--pollutant series, sorted, with marker shape encoding pollutant: CAMS over-predicts \pmtf{} (warm) and under-predicts dust \pmten{} (cool). (c) Annual valid-sample counts per station, showing sparse and intermittent coverage. (d) Benchmark size: number of stations and matched three-hourly samples per pollutant.}
+\label{fig:system}
+\end{figure}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{Fig2.png}
+\caption{\textbf{Observation-driven nowcasts define the routine regime.} (a) Mean absolute error with station-cluster 95\% confidence intervals. Observation-driven methods strongly beat raw and bias-corrected CAMS, but PM$_{10}$ persistence is statistically tied with Chronos-2. (b) Paired station-level effect sizes: gains over CAMS are large, whereas the PM$_{10}$ foundation-model advantage over persistence is unresolved. (c) Context, covariate and residual-hybrid ablation: neither supplying CAMS as a covariate nor forecasting the CAMS residual materially improves on the foundation model applied directly to observations (the covariate's only gain, $0.2$~\ugm{} at $K=32$, is marginal). (d) Operational reading of the benchmark.}
+\label{fig:dominance}
+\end{figure}
+
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{Fig3.png}
+\caption{\textbf{Boundaries where physics still matters.} (a) The observation-driven advantage shrinks with lead time. (b) In the PM$_{2.5}$ extreme subset, raw CAMS becomes centrally competitive with autoregressive nowcasts, although uncertainty intervals overlap. (c) Foundation-model/CAMS error ratio versus observed concentration percentile: PM$_{2.5}$ crosses above one at the upper tail, while PM$_{10}$ does not because CAMS under-predicts dust. (d) Conservative claim boundary used for deployment guidance.}
+\label{fig:boundaries}
+\end{figure}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{Fig4.png}
+\caption{\textbf{Three conventions inside the audit, each of which decides the verdict.}
+(a) Median across the 19 stations of the lag autocorrelation of the observation-minus-CAMS
+residual. It falls below $1/e$ within a day but does not continue to decay: a synoptic
+plateau near $+0.2$ persists from two days to a week, and the correlation reaches $+0.08$
+only at ten days. The guard band used in earlier work, three days, sits inside the plateau.
+(b) The audit ladder under the full three-fold control on the log error ratio
+$\Delta=\log(\mathrm{MAE_{raw}}/\mathrm{MAE_{transfer}})$, with everything held fixed
+except the guard: dotted at three days, solid at ten, shading the block bootstrap over the
+nine covariate cells for the ten-day fit. Under the three-day guard both feature sets clear
+Benjamini--Hochberg correction at the narrow radii ($q=0.006$ and $q=0.008$); under the
+ten-day guard nothing clears it anywhere, at a cost of $11.6\%$ of the training data.
+(c) Points held out per fold under calendar-equal blocks and under blocks taken at
+quantiles of each target's own timestamps. The record has four months of 2023 with no
+observations, so calendar blocks left three of six folds nearly empty at every station;
+the panel shows station 369959, where they held 9, 4 and 7 points. Across the network the
+median ratio of largest to smallest calendar fold is $124$, against $1.01$ for quantile
+blocks: a nominal six-fold control that was three-fold in substance. (d) The paired difference
+between feature sets, $\Delta_{\text{coordinate-free}}-\Delta_{\text{coordinate-bearing}}$,
+which is the comparison that answers ``which specification is better'' rather than two
+separate verdicts against zero. Coordinates are indistinguishable from their absence while
+every neighbour is available and behind it once the buffer bites. The third convention, the
+flat-line quality-control threshold, is in SI Table~S31: moving it from six to three
+removes $9.9\%$ of the record, disproportionately at low concentration, and restores a
+significant coordinate-free gain.}
+\label{fig:conventions}
+\end{figure}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{Fig5.png}
+\caption{\textbf{Three checks on the audit's own controls.}
+(a) What each design validates, against what deployment presents. Plain
+leave-one-station-out holds out a station whose nearest training neighbour is a median
+$6.5$~km away; drawing $20{,}000$ locations uniformly from the network's bounding box, an
+unmonitored site in this region sits a median $35.0$~km from the nearest monitor
+(interquartile range shaded). Every audited design is at least as demanding as that:
+with the grid-cell stage in place the median target-to-nearest-source distance is $48.3$~km
+at zero buffer and $108.1$~km at 100~km. The buffer ladder therefore brackets the
+deployment geometry rather than approximating it, which is the end a kNNDM fold search
+would pursue by assignment instead.
+(b) Coordinate permutation placebo under the reported specification: each station keeps a
+constant coordinate pair, but the pairs are permuted among stations, with 99 permutations
+at each radius so that a $p$ below $0.05$ is attainable (the floor is $0.010$). At zero
+buffer the true assignment sits at the 59th percentile of its own null and is
+indistinguishable from a geographically wrong one (two-sided $p=0.90$): the coordinates add
+nothing the day-of-year term does not already supply. At a 100~km buffer it sits at the
+10th percentile and 89 of 99 wrong assignments beat it, which is what extrapolation beyond
+the region the surviving sources span should look like; that direction is clear but is not
+itself significant (one-sided $p=0.11$). It is the change of sign, not either endpoint,
+that the placebo establishes.
+(c) The leave-one-grid-cell-out stage is not an artefact of where the CAMS grid falls.
+Shifting the grid origin over seven offsets moves the number of station pairs sharing a
+cell between 15 and 31, but the median $\Delta$ moves by at most $0.058$ log units at zero
+buffer --- a fifth of the width of the block-bootstrap interval on any one of them --- and
+not at all at 100~km, where no surviving source shares a cell with its target under any
+origin (Table~S33).}
+\label{fig:checks}
+\end{figure}
+
+\section{Software and data availability}
+
+\noindent\textbf{Name.} \texttt{camscast-audit}: reference implementation of the
+distance-buffered, coordinate-free spatial-transfer audit, together with the benchmark
+and processed evaluation data reported here.
+
+\noindent\textbf{Developers and contact.} Jin Yoo and Doo-Hee Lee, CBRN Defense Research
+Institute, Korea Ministry of National Defense, Seoul 06796, Republic of Korea.
+Correspondence: Ku Kang, \texttt{bisu9082@gmail.com}.
+
+\noindent\textbf{Year first available.} 2026.
+
+\noindent\textbf{Availability and cost.} Free and open, released under the MIT licence in
+a public repository at \url{https://github.com/bisu9082/camscast-audit}, with the version
+reported here tagged \texttt{v1.0}. Downloadable without registration and without an
+account; no licence fee. The repository is self-contained: it carries the processed
+station records, every table and figure input, the run logs and the manuscript sources,
+so reproducing the paper does not require contacting the authors or holding a Copernicus
+account.
+
+\noindent\textbf{Program language.} Python 3.11.
+
+\noindent\textbf{Program size.} Approximately $3{,}900$ lines across 29 analysis scripts
+in \texttt{code/}, three figure scripts in \texttt{manuscript/} and a \texttt{smoke\_test.py}
+at the repository root that loads the data and re-checks the integrity invariants in about
+a minute. The scripts that produce the reported results are:
+\texttt{loso\_v2.py} (data loading, station geometry and the feature frames all later
+stages import), \texttt{qc\_flatline.py} (the flat-line quality control and the
+concentration evidence behind its threshold), \texttt{audit\_v7.py} (\emph{the reported
+audit}: the three controls applied jointly at every radius on the log error ratio, with
+quantile time blocks, the guard band as a parameter, the station and grid-cell block
+bootstraps, both confirmatory tests and the paired comparison; this script produces
+Table~S6 and every headline value), \texttt{placebo\_v7.py} with
+\texttt{merge\_placebo.py} (the coordinate-permutation placebo under that specification
+and the merge of its worker shards), \texttt{grid\_offset.py} (grid-origin sensitivity of
+the leave-one-grid-cell-out stage, Table~S33), \texttt{knndm.py} (the deployment geometry
+and its relation to the buffer ladder), \texttt{fold\_occupancy.py} (fold occupancy under
+calendar and quantile blocks), \texttt{moran.py} (residual spatial autocorrelation by
+distance band), \texttt{ets\_hss\_ci.py} (station cluster-bootstrap intervals for the
+chance-corrected detection scores), \texttt{recon\_origins.py} with
+\texttt{tables\_s12\_s13.py}, \texttt{fm\_repro.py} and \texttt{fm\_detect2.py}
+(rolling-origin reconstruction, foundation-model forecasts, detection scores and error
+metrics), \texttt{si\_recompute.py} (supplementary recomputation), and
+\texttt{loso\_stability.py} (determinism check: verifies that the reported fit is
+seed-invariant once early stopping is disabled).
+
+\noindent\textbf{Superseded scripts, retained deliberately.} \texttt{auditlib.py} with
+\texttt{audit\_v3.py}, \texttt{audit\_v4\_heavy.py}, \texttt{audit\_v4b\_tail.py},
+\texttt{audit\_v4c\_placebo100.py}, \texttt{audit\_v5\_learners.py} and
+\texttt{audit\_v6.py} are earlier versions of the audit. They are kept in the repository
+rather than deleted because this paper is partly about how a verdict changes with the
+choices inside an audit, and a reader who wants to reproduce the superseded result --- the
+three-day guard, the calendar blocks, the 30-draw placebo --- needs the code that produced
+it. They are not the reported analysis and should not be run as such.
+
+\noindent\textbf{Quality-control scripts.} \texttt{number\_audit.py} extracts every
+numeric literal in the manuscript with its sentence and matches it against the computed
+artefacts (Section~S15); \texttt{xref\_audit.py} rebuilds the float numbering from source
+and checks every hard-coded ``Table~S'' and ``Figure'' reference against the float it
+lands on; \texttt{ai\_remover.py} flags the prose constructions and repeated phrasings
+that mark machine-generated academic English; and \texttt{doi\_verify.py} resolves every
+DOI in the bibliography at CrossRef, falling back to DataCite for the arXiv and Zenodo
+registrations CrossRef does not hold, and compares the returned title and year with what
+the entry claims. These are included because they are part of
+how the reported numbers were checked, not as general-purpose tools.
+
+\noindent\textbf{Applying the audit to another network.} The audit is not specific to
+CAMS or to particulate matter, and running it elsewhere requires three substitutions and
+no new data beyond what a leave-one-station-out evaluation already uses. Replace the
+aligned records in \texttt{data\_processed/} with one CSV per station carrying a
+timestamp, the observation, the model value and their difference. Run
+\texttt{moran.py} to set the buffer ladder from the measured range of residual spatial
+autocorrelation, \texttt{resid\_acf.py} to set the guard band from the measured temporal
+autocorrelation, and \texttt{qc\_flatline.py} to set the repeated-value threshold from the
+concentration signature of the repeats; each writes the JSON that \texttt{audit\_v7.py}
+reads. Set \texttt{CAMSCAST\_DATA} and the cell size to match the covariate grid, and the
+remaining steps are unchanged. The three conventions this paper is about are exactly the
+three that these scripts measure rather than assume, so the substitution is where the
+method transfers even when the verdict does not.
+
+\noindent\textbf{Software required.} Python 3.11 with \texttt{numpy} 2.4,
+\texttt{pandas} 3.0, \texttt{scipy} 1.17, \texttt{scikit-learn} 1.8 and
+\texttt{matplotlib} 3.10, which are the versions the reported analysis ran on and are
+recorded exactly in \texttt{requirements-frozen.txt}. \texttt{requirements.txt} gives
+wider ranges so that installing the package does not disturb an existing environment; the
+integrity check has been run under \texttt{pandas} 2.3 and 3.0, and nothing in the
+analysis depends on a behaviour that differs between them. The foundation-model
+scripts also require \texttt{torch} 2.13 and \texttt{chronos-forecasting}, with
+model weights fetched from the public Hugging Face repositories
+\texttt{amazon/chronos-2} and \texttt{amazon/chronos-bolt-small}. Exact versions are
+pinned in \texttt{requirements.txt}.
+
+\noindent\textbf{Hardware required.} No GPU. The distance-buffered audit (four radii,
+two feature sets, 19 held-out stations) runs in under two minutes on two CPU cores; adding the
+time-blocked, grid-cell, ablation, placebo and source-bootstrap stages takes approximately
+40 minutes on the same hardware; the
+zero-shot foundation-model forecasts over all 24 series take approximately ten minutes on
+CPU. Peak memory below 4~GB.
+
+\noindent\textbf{Data: form of repository and size.} Plain CSV files in the same archive.
+The processed inputs are 24 station-level aligned series (observation, CAMS value and
+residual on the common three-hourly grid), 3.1~MB, together with the two quality-controlled
+copies the flat-line sensitivity requires ($K=6$, the primary set, and $K=3$), 6.1~MB more;
+and the per-point evaluation record \texttt{bench\_withobs\_detail.csv} (87{,}006 rows;
+pollutant, station, model, origin, lead time, absolute error, extreme-event flag), 3.7~MB.
+Twenty-nine JSON artefacts carry every computed value behind the article and its
+supplement; \texttt{number\_audit.py} matches the manuscript against them.
+
+\noindent\textbf{Data: access form.} Direct download from the archived record above.
+The primary sources from which these files were derived are themselves public and are
+cited in the reference list: OpenAQ surface observations, the CAMS EAC4 reanalysis and
+CAMS global atmospheric-composition operational forecast, and the NASA MERRA-2
+M2T1NXAER reanalysis.
+
+\section*{CRediT authorship contribution statement}
+
+\textbf{Jin Yoo:} Conceptualization, Methodology, Software, Formal analysis,
+Writing -- original draft. \textbf{Doo-Hee Lee:} Methodology, Software, Formal analysis,
+Validation, Writing -- original draft. \textbf{Jeongyun Kim:} Data curation,
+Investigation, Writing -- review and editing. \textbf{Ku Kang:} Conceptualization,
+Funding acquisition, Supervision, Writing -- review and editing.
+
+\section*{Funding}
+
+This work was supported by the Ministry of National Defense of the Republic of Korea.
+The funder had no role in study design, data collection and analysis, decision to
+publish, or preparation of the manuscript.
+
+\section*{Declaration of competing interest}
+
+The authors declare that they have no known competing financial interests or personal
+relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+
+During the preparation of this work the authors used Claude (Anthropic) to
+assist with drafting and language editing of the manuscript text and with writing and
+debugging the analysis and figure-generation code. All measurements and model fields were
+obtained from the cited public archives; no data, numerical results or references were
+generated by AI. After using this tool the authors reviewed and edited the content as
+needed, verified every reported numerical value against the underlying data, and take
+full responsibility for the content of the published article.
+
+\section*{Acknowledgements}
+
+We thank the OpenAQ initiative, the Copernicus Atmosphere Monitoring Service and the
+NASA Goddard Earth Sciences Data and Information Services Center for open access to the
+data used in this study.
+
+\bibliographystyle{elsarticle-harv}
+\bibliography{refs_ems_v1}
+
+\end{document}

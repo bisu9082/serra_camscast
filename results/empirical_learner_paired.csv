@@ -1,0 +1,7 @@
+spec,radius_km,reference,comparator,median_paired_diff_pp,ci_lo,ci_hi,n_ref_higher,n,wilcoxon_p,bh_q
+full,100,gbm_d6,gbm_d2,2.87,-1.1,28.53,13,19,0.13362,0.40086
+full,100,gbm_d6,rf,-0.93,-1.48,63.79,7,19,0.54122,0.81183
+full,100,gbm_d6,ridge,-5.45,-8.17,21.85,6,19,0.89057,0.89057
+coordfree,100,gbm_d6,gbm_d2,-0.07,-5.54,0.17,9,19,0.07988,0.11981
+coordfree,100,gbm_d6,rf,0.17,-2.84,0.64,10,19,0.33207,0.33207
+coordfree,100,gbm_d6,ridge,-4.63,-7.83,-3.29,2,19,7e-05,0.00022
