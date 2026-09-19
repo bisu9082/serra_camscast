@@ -28,7 +28,6 @@
 \newcommand*{\pmtf}{\ensuremath{\mathrm{PM_{2.5}}}}
 \newcommand*{\pmten}{\ensuremath{\mathrm{PM_{10}}}}
 \newcommand*{\DeltaT}{\ensuremath{\Delta}}
-\newcommand*{\deposit}[1]{\textcolor{red}{\textbf{[BLOCKER --- resolve before submission:} #1\textbf{]}}}
 
 \raggedbottom
 
@@ -114,12 +113,15 @@ are documented in \texttt{data\_retrieval/RETRIEVAL.md}. Ground observations are
 Not applicable.
 
 \bmhead{Code availability}
-The analysis code for the empirical audit is in the same repository under the MIT licence,
-together with the figure scripts and the result artefacts.
-\deposit{the stochastic-simulation code (\texttt{serra\_simulation\_v2.py}), its structural
-tests, its pre-declared configuration and the 25/50/100~km Monte Carlo outputs exist and have
-been validated, but are not yet publicly deposited. Deposit them, record the archival identifier
-and the release tag here, and delete this marker. Do not submit with this sentence unresolved.}
+All code underlying this article is in the same public repository under the MIT licence:
+the empirical audit scripts and their result artefacts, the figure scripts, and the
+ground-truth stochastic experiment (\texttt{serra\_simulation\_v2.py}) together with its
+structural tests, its pre-declared configuration and the 25-, 50- and 100~km Monte Carlo
+outputs for both correctors. The version reported here is release \texttt{v1.0}, commit
+\texttt{d2cdf4b1d8ee060ccb38cbb51db876c85de7fab9}. In a fresh clone of that release,
+\texttt{smoke\_test.py} recovers the 20,818 matched three-hourly records and passes its
+integrity checks, the simulation structural tests pass, and \texttt{agg\_learner.py}
+reproduces the three-radius learner comparison reported in Supplementary Table~S43.
 
 \bmhead{Author contribution}
 \textbf{Jin Yoo:} Conceptualization, Methodology, Software, Formal analysis, Writing --- original
