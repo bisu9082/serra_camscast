@@ -93,7 +93,7 @@ finding.
 ## 2. Layout
 
 ```
-code/                     29 analysis scripts for the empirical audit, no hardcoded paths
+code/                     30 analysis scripts for the empirical audit, no hardcoded paths
 data_retrieval/           request parameters for rebuilding data_processed/ from the
                           source archives (specification only; no retrieval client ships)
 simulation/               the ground-truth stochastic experiment and its Monte Carlo outputs

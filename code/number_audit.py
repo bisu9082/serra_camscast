@@ -82,7 +82,8 @@ IGNORE = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
           "1.5", "1.96", "06796", "3.11", "2.5"}
 
 rows = []
-for fn in ("main_ems.tex", "SI_ems.tex", "cover_letter_EMS.tex"):
+for fn in tuple(os.environ.get("CAMSCAST_FILES",
+                "body.tex,SI_serra.tex").split(",")):
     txt = open(os.path.join(ROOT, "manuscript", fn)).read()
     txt = STRIP.sub(" ", txt)
     # do not treat the decimal point inside a number as a sentence end: LaTeX math

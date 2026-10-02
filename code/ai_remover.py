@@ -27,7 +27,8 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 ROOT = os.environ.get("CAMSCAST_TEX", os.path.join(REPO, "manuscript"))
-FILES = ("main_ems.tex", "SI_ems.tex", "cover_letter_EMS.tex")
+FILES = tuple(os.environ.get("CAMSCAST_FILES",
+               "body.tex,main_serra_sn.tex,SI_serra.tex").split(","))
 OUT = os.environ.get("CAMSCAST_OUT", os.path.join(REPO, "results", "ai_review.csv"))
 
 PATTERNS = [

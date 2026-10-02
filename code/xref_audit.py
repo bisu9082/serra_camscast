@@ -41,8 +41,8 @@ def floats_in(path, prefix):
     return out
 
 
-si = floats_in(os.path.join(ROOT, "SI_ems.tex"), "S")
-main = floats_in(os.path.join(ROOT, "main_ems.tex"), "")
+si = floats_in(os.path.join(ROOT, os.environ.get("CAMSCAST_SI", "SI_serra.tex")), "S")
+main = floats_in(os.path.join(ROOT, os.environ.get("CAMSCAST_MAIN", "body.tex")), "")
 
 known_tables = dict(si["table"])
 known_tables.update(main["table"])
@@ -57,7 +57,8 @@ REF_T = re.compile(r"Table~(S?\d+)")
 REF_F = re.compile(r"Figure~(S?\d+)")
 
 rows, missing = [], []
-for fn in ("main_ems.tex", "SI_ems.tex", "cover_letter_EMS.tex"):
+for fn in (os.environ.get("CAMSCAST_MAIN", "body.tex"),
+           os.environ.get("CAMSCAST_SI", "SI_serra.tex")):
     path = os.path.join(ROOT, fn)
     if not os.path.exists(path):
         continue

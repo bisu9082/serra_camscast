@@ -66,7 +66,7 @@ for R in 25 100; do
 done
 
 # aggregate the three radii and test the learners against each other directly:
-python agg_learner.py            # writes learner_check_3radii.csv, learner_direct_tests.csv
+python agg_learner.py            # writes results/learner_check_3radii.csv and\n                                 # results/learner_direct_tests.csv
 ```
 
 `OMP_NUM_THREADS=1` matters. Without it the BLAS threads oversubscribe the process pool and the run

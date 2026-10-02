@@ -1,13 +1,3 @@
 file,category,hit,sentence
-main_ems.tex,vague_this,This is,This is a retrospective spatial-transfer test rather than a prospective deployment.
-main_ems.tex,vague_this,This is,"This is also the one regime in which the CTM is credited, and therefore the one most sensitive to our use of the EAC4 reanalysis: because reanalysis assimilates within-window information unavailable to a real-time forecast, an operational CAMS product might show a weaker \pmtf{} crossover, so the ph"
-main_ems.tex,vague_this,That is,"That is a stronger statement than the one we set out to make, and it is the one the data support once the temporal control is specified from the residual field instead of from a rule of thumb."
-main_ems.tex,appositive_chain,", which is why","6$~\ugm{}, largest at urban and roadside sites), while \pmtf{} is over-predicted at all five sites; a monitor's own recent history, by contrast, encodes the local emission and transport state directly, which is why an observation-driven nowcast dominates wherever such history exists, and why the mec"
-main_ems.tex,repeated_phrase,x3,leave one grid cell out stage
-SI_ems.tex,appositive_chain,", which is why","Sixteen of the 19 stations share a cell with at least one other, so their CAMS covariate series are identical, which is why a leave-one-grid-cell-out stage is included in the audit (Table~S6, Table~S24)."
-SI_ems.tex,vague_this,This is,"This is not a strict mathematical bracket on MAE, because bias-corrected MAE need not be monotonic in the reconstructed concentration."
-SI_ems.tex,vague_this,This is,This is the motivation for the time-blocking control in Table~S6.
-SI_ems.tex,appositive_chain,", which is why","At the same time, dust loading during an event is strongly autocorrelated over hours: once a plume is over a station, its own recent record is the best available predictor of the next 3--24~h, which is why persistence captures most of the observation-driven skill and why the advantage decays with le"
-SI_ems.tex,appositive_chain,", which is what","} The upper block gives each specification against zero, which is what an earlier version compared; the lower block gives the paired difference, which is the comparison the question actually requires."
-SI_ems.tex,vague_this,This is,This is the structure a station-level error bar cannot represent.
-SI_ems.tex,vague_this,This is,"This is the comparison the manuscript reports, in place of contrasting each specification's separate verdict against zero, which is not a comparison of the two (Gelman and Stern, 2006)."
+body.tex,cleft,It is not by itself evidence that,It is not by itself evidence that the correction transfers to a location for which the corresponding spatial and temporal information would be absent.
+body.tex,nominalisation,the fact that,The common phrase ``spatial cross-validation'' can obscure the fact that different withholding schemes answer different questions.

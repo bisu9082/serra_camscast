@@ -11,6 +11,7 @@ the artefact index used by `number_audit.py`.
 | 1,426 synthetic data sets | Stock 2025, Front. Remote Sens. | 10.3389/frsen.2025.1531097 | abstract (cited since the EMS version) |
 | AUC overstated "by as much as 0.16" | Koldasbayeva & Zaytsev 2025, Ecol. Inform. | 10.1016/j.ecoinf.2025.103521 | abstract (cited since the EMS version) |
 | headline accuracy 92.6%; chronological forward-chaining 47.9% (KD-DM-20) and 38.7% (uncompensated) | Kim et al. 2026, Molecules | 10.3390/molecules31111884 | abstract |
+| 118 wells; pooled $F_1$-macro 0.81–0.93 row-level vs 0.31–0.45 leave-one-well-out | Yue et al. 2026, Sci. Rep. | 10.1038/s41598-026-71272-0 | abstract |
 
 Retrieval: Semantic Scholar Graph API (abstract field) and the publisher PDF front matter.
-All five DOIs resolve at CrossRef; see `doi_verification_72.csv`.
+All six DOIs resolve at CrossRef; see `doi_verification_73.csv`.
