@@ -1,0 +1,88 @@
+key,doi,resolver,year,journal,title,status
+roberts2017,10.1111/ecog.02881,crossref,2017,Ecography,"Cross‐validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure",ok
+valavi2019blockcv,10.1111/2041-210X.13107,crossref,2018,Methods in Ecology and Evolution,"<scp>block</scp>
+                    <scp>CV</scp>
+                    : An
+                    <scp>r</scp>
+           ",ok
+meyer2018llto,10.1016/j.envsoft.2017.12.001,crossref,2018,Environmental Modelling &amp; Software,Improving performance of spatio-temporal machine learning models using forward feature selection and target-oriented val,ok
+meyer2021aoa,10.1111/2041-210X.13650,crossref,2021,Methods in Ecology and Evolution,Predicting into unknown space? Estimating the area of applicability of spatial prediction models,ok
+mila2024proxies,10.5194/gmd-17-6007-2024,crossref,2024,Geoscientific Model Development,Random forests with spatial proxies for environmental modelling: opportunities and pitfalls,ok
+wadoux2021,10.1016/j.ecolmodel.2021.109692,crossref,2021,Ecological Modelling,Spatial cross-validation is not the right way to evaluate map accuracy,ok
+inness2019,10.5194/acp-19-3515-2019,crossref,2019,Atmospheric Chemistry and Physics,The CAMS reanalysis of atmospheric composition,ok
+flemming2015,10.5194/gmd-8-975-2015,crossref,2015,Geoscientific Model Development,Tropospheric chemistry in the Integrated Forecasting  System of ECMWF,ok
+wilcoxon1945,10.2307/3001968,crossref,1945,Biometrics Bulletin,Individual Comparisons by Ranking Methods,ok
+benjamini1995,10.1111/j.2517-6161.1995.tb02031.x,crossref,1995,Journal of the Royal Statistical Society Series B: Statistical Methodology,Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing,ok
+gelman2006,10.1198/000313006X152649,crossref,2006,The American Statistician,The Difference Between “Significant” and “Not Significant” is not Itself Statistically Significant,ok
+pompili2026,10.1007/s00477-026-03283-2,crossref,2026,Stochastic Environmental Research and Risk Assessment,Evaluating the use of a coordinate-based tensor-product for addressing spatial autocorrelation in shallow landslide susc,ok
+chisilev2026,10.1007/s00477-026-03331-x,crossref,2026,Stochastic Environmental Research and Risk Assessment,Assessment of machine learning methods for urban air pollution forecasting,ok
+chida2025,10.1007/s00477-025-03037-6,crossref,2025,Stochastic Environmental Research and Risk Assessment,Spatial and temporal dependence framework in multi-site precipitation modelling,ok
+patane2025,10.1007/s00477-025-02943-z,crossref,2025,Stochastic Environmental Research and Risk Assessment,An interpretable and transferable model for shallow landslides detachment combining spatial Poisson point processes and ,ok
+izzaddin2024,10.1007/s00477-024-02678-3,crossref,2024,Stochastic Environmental Research and Risk Assessment,A new diagram for performance evaluation of complex models,ok
+portes2026,10.1016/j.spasta.2026.101009,crossref,2026,Spatial Statistics,When machine learning extrapolates in space: How local data shape spatial transferability,ok
+jiang2026tiered,10.1016/j.mex.2026.104072,crossref,2026,MethodsX,A tiered spatial validation workflow for geographic prediction models,ok
+stock2025blocks,10.3389/frsen.2025.1531097,crossref,2025,Frontiers in Remote Sensing,Choosing blocks for spatial cross-validation: lessons from a marine remote sensing case study,ok
+koldasbayeva2025stcv,10.1016/j.ecoinf.2025.103521,crossref,2025,Ecological Informatics,Foundation for unbiased cross-validation of spatio-temporal models for Species Distribution Modeling,ok
+meyer2024cast,10.48550/arXiv.2404.06978,datacite,2024,arXiv,The CAST package for training and assessment of spatial prediction models in R,ok
+mahoney2023assessing,10.48550/arXiv.2303.07334,datacite,2023,arXiv,Assessing the performance of spatial cross-validation approaches for models of spatially structured data,ok
+brenning2026aligning,10.48550/arXiv.2603.29981,datacite,2026,arXiv,Aligning Validation with Deployment in Spatial Prediction: Target-Weighted Cross-Validation,ok
+ploton2020,10.1038/s41467-020-18321-y,crossref,2020,Nature Communications,Spatial validation reveals poor predictive performance of large-scale ecological mapping models,ok
+mila2022nndm,10.1111/2041-210X.13851,crossref,2022,Methods in Ecology and Evolution,"Nearest neighbour distance matching
+                    <scp>Leave‐One‐Out Cross‐Validation</scp>
+                    fo",ok
+linnenbrink2024knndm,10.5194/gmd-17-5897-2024,crossref,2024,Geoscientific Model Development,"kNNDM CV:
+                    <i>k</i>
+                    -fold nearest-neighbour distance matching cross-validation fo",ok
+schratz2019,10.1016/j.ecolmodel.2019.06.002,crossref,2019,Ecological Modelling,Hyperparameter tuning and performance assessment of statistical and machine-learning algorithms using spatial data,ok
+schratz2024mlr3,10.18637/jss.v111.i07,crossref,2024,Journal of Statistical Software,"<b>mlr3spatiotempcv</b>
+                    : Spatiotemporal Resampling Methods for Machine Learning in
+                ",ok
+mushagalusa2024,10.1186/s40068-024-00352-9,crossref,2024,Environmental Systems Research,Random forest and spatial cross-validation performance in predicting species abundance distributions,ok
+gazis2021,10.3390/min11111172,crossref,2021,Minerals,"Importance of Spatial Autocorrelation in Machine Learning Modeling of Polymetallic Nodules, Model Uncertainty and Transf",ok
+abriha2023,10.1016/j.heliyon.2023.e14045,crossref,2023,Heliyon,Smaller is better? Unduly nice accuracy assessments in roof detection using remote sensing data with machine learning an,ok
+kapoor2023leakage,10.1016/j.patter.2023.100804,crossref,2023,Patterns,Leakage and the reproducibility crisis in machine-learning-based science,ok
+kapoor2024reforms,10.1126/sciadv.adk3452,crossref,2024,Science Advances,REFORMS: Consensus-based Recommendations for Machine-learning-based Science,ok
+morenotorres2012,10.1016/j.patcog.2011.06.019,crossref,2012,Pattern Recognition,A unifying view on dataset shift in classification,ok
+politis1994,10.1080/01621459.1994.10476870,crossref,1994,Journal of the American Statistical Association,The Stationary Bootstrap,ok
+kunsch1989,10.1214/aos/1176347265,crossref,1989,The Annals of Statistics,The Jackknife and the Bootstrap for General Stationary Observations,ok
+bergmeir2012,10.1016/j.ins.2011.12.028,crossref,2012,Information Sciences,On the use of cross-validation for time series predictor evaluation,ok
+racine2000,10.1016/S0304-4076(00)00030-0,crossref,2000,Journal of Econometrics,Consistent cross-validatory model-selection for dependent data: hv-block cross-validation,ok
+cerqueira2020,10.1007/s10994-020-05910-7,crossref,2020,Machine Learning,Evaluating time series forecasting models: an empirical study on performance estimation methods,ok
+dietterich1998,10.1162/089976698300017197,crossref,1998,Neural Computation,Approximate Statistical Tests for Comparing Supervised Classification Learning Algorithms,ok
+nadeau2003,10.1023/A:1024068626366,crossref,2003,Machine Learning,Inference for the Generalization Error,ok
+wilson1927,10.1080/01621459.1927.10502953,crossref,1927,Journal of the American Statistical Association,"Probable Inference, the Law of Succession, and Statistical Inference",ok
+efron1979,10.1214/aos/1176344552,crossref,1979,The Annals of Statistics,Bootstrap Methods: Another Look at the Jackknife,ok
+vannitsem2021,10.1175/BAMS-D-19-0308.1,crossref,2021,Bulletin of the American Meteorological Society,"Statistical Postprocessing for Weather Forecasts: Review, Challenges, and Avenues in a Big Data World",ok
+rasp2018,10.1175/MWR-D-18-0187.1,crossref,2018,Monthly Weather Review,Neural Networks for Postprocessing Ensemble Weather Forecasts,ok
+schulz2022,10.1175/MWR-D-21-0150.1,crossref,2022,Monthly Weather Review,Machine Learning Methods for Postprocessing Ensemble Forecasts of Wind Gusts: A Systematic Comparison,ok
+djalalova2015,10.1016/j.atmosenv.2015.02.021,crossref,2015,Atmospheric Environment,PM2.5 analog forecast and Kalman filter post-processing for the Community Multiscale Air Quality (CMAQ) model,ok
+djalalova2010,10.1016/j.atmosenv.2009.11.007,crossref,2010,Atmospheric Environment,Ensemble and bias-correction techniques for air quality model forecasts of surface O3 and PM2.5 during the TEXAQS-II exp,ok
+huang2017,10.1175/WAF-D-16-0118.1,crossref,2017,Weather and Forecasting,Improving NOAA NAQFC PM2.5 Predictions with a Bias Correction Approach,ok
+zhang2021ens,10.1029/2021JD035563,crossref,2021,Journal of Geophysical Research: Atmospheres,Improving Surface PM<sub>2.5</sub> Forecasts in the United States Using an Ensemble of Chemical Transport Model Outputs:,ok
+ye2022,10.1021/acs.est.2c05712,crossref,2022,Environmental Science &amp; Technology,Diagnosing the Model Bias in Simulating Daily Surface Ozone Variability Using a Machine Learning Method: The Effects of ,ok
+skipper2024,10.5194/gmd-17-8373-2024,crossref,2024,Geoscientific Model Development,Source-specific bias correction of US background and anthropogenic ozone modeled in CMAQ,ok
+miyazaki2025,10.5194/acp-25-8507-2025,crossref,2025,Atmospheric Chemistry and Physics,Identifying drivers of surface ozone bias in global chemical reanalysis with explainable machine learning,ok
+zhang2018lur,10.1016/j.atmosenv.2018.08.046,crossref,2018,Atmospheric Environment,"National scale spatiotemporal land-use regression model for PM2.5, PM10 and NO2 concentration in China",ok
+wang2025lur,10.1016/j.envpol.2024.125405,crossref,2025,Environmental Pollution,National PM2.5 spatiotemporal model integrating intensive monitoring data and land use regression in a likelihood-based ,ok
+tan2022openaq,10.1088/1748-9326/ac52c9,crossref,2022,Environmental Research Letters,Reconstructing global PM<sub>2.5</sub> monitoring dataset from OpenAQ using a two-step spatio-temporal model based on SE,ok
+rosales2025,10.1007/s40572-025-00487-6,crossref,2025,Current Environmental Health Reports,Open Air Quality Data Platforms for Environmental Health Research and Action,ok
+vanzoest2019,10.1016/j.atmosenv.2019.04.048,crossref,2019,Atmospheric Environment,Calibration of low-cost NO2 sensors in an urban air quality network,ok
+siddiqui2024,10.1007/s11869-024-01683-3,crossref,2024,"Air Quality, Atmosphere &amp; Health",Performance and data acquisition from low-cost air quality sensors: a comprehensive review,ok
+toplak2014,10.1021/ci4006595,crossref,2014,Journal of Chemical Information and Modeling,Assessment of Machine Learning Reliability Methods for Quantifying the Applicability Domain of QSAR Regression Models,ok
+fisher2025ad,10.1016/j.toxlet.2024.11.006,crossref,2025,Toxicology Letters,Evaluating applicability domain of acute toxicity QSAR models for military and industrial chemical risk assessment,ok
+cohen2017,10.1016/S0140-6736(17)30505-6,crossref,2017,The Lancet,Estimates and 25-year trends of the global burden of disease attributable to ambient air pollution: an analysis of data ,ok
+harris2020numpy,10.1038/s41586-020-2649-2,crossref,2020,Nature,Array programming with NumPy,ok
+virtanen2020scipy,10.1038/s41592-019-0686-2,crossref,2020,Nature Methods,SciPy 1.0: fundamental algorithms for scientific computing in Python,ok
+friedman2001,10.1214/aos/1013203451,crossref,2001,The Annals of Statistics,Greedy function approximation: A gradient boosting machine.,ok
+gelaro2017,10.1175/JCLI-D-16-0758.1,crossref,2017,Journal of Climate,"The Modern-Era Retrospective Analysis for Research and Applications, Version 2 (MERRA-2)",ok
+randles2017,10.1175/JCLI-D-16-0609.1,crossref,2017,Journal of Climate,"The MERRA-2 Aerosol Reanalysis, 1980 Onward. Part I: System Description and Data Assimilation Evaluation",ok
+bae2025,10.1016/j.jenvrad.2025.107725,crossref,2025,Journal of Environmental Radioactivity,Environmental drivers of Be-7 and K-40 deposition in South Korea: A regional analysis of meteorological and geological i,ok
+jang2025qsar,10.1016/j.comtox.2025.100363,crossref,2025,Computational Toxicology,Hybrid QSAR modeling of LD50 in organophosphorus nerve agents: a mechanistic approach using DFT and molecular docking,ok
+kang2026openset,10.1016/j.jhazmat.2026.143199,crossref,2026,Journal of Hazardous Materials,Open-set combustion-fingerprint classification with out-of-distribution alerting for environmental fire-hazard screening,ok
+kim2026drift,10.3390/molecules31111884,crossref,2026,Molecules,Drift-Robust Lightweight Deep Learning on Open Gas Sensor Benchmarks: A Reproducible Architecture Study with CBRN Applic,ok
+pedregosa2011,10.48550/arXiv.1201.0490,datacite,2012,arXiv,Scikit-learn: Machine Learning in Python,ok
+yue2026validation,10.1038/s41598-026-71272-0,crossref,2026,Scientific Reports,Validation design governs reliability claims in well-log lithology prediction,ok
+adin2024lgocv,10.1016/j.spasta.2024.100843,crossref,2024,Spatial Statistics,Automatic cross-validation in structured models: Is it time to leave out leave-one-out?,ok
+lobo2020bayescv,10.1016/j.spasta.2019.100394,crossref,2020,Spatial Statistics,Bayesian cross-validation of geostatistical models,ok
+mrkvicka2021randomshift,10.1016/j.spasta.2020.100430,crossref,2021,Spatial Statistics,Revisiting the random shift approach for testing in spatial statistics,ok
+pohjankukka2017skcv,10.1080/13658816.2017.1346255,crossref,2017,International Journal of Geographical Information Science,Estimating the prediction performance of spatial models via spatial k-fold cross validation,ok

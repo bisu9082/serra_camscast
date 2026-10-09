@@ -1,0 +1,116 @@
+%% Spatial Statistics (Elsevier) submission
+%% Compile: pdflatex -> bibtex -> pdflatex -> pdflatex
+\documentclass[preprint,12pt]{elsarticle}
+
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{subcaption}
+\usepackage[per-mode=symbol]{siunitx}
+
+\newcommand*{\ugm}{\ensuremath{\mu\mathrm{g\,m^{-3}}}}
+\newcommand*{\pmtf}{\ensuremath{\mathrm{PM_{2.5}}}}
+\newcommand*{\pmten}{\ensuremath{\mathrm{PM_{10}}}}
+
+\journal{Spatial Statistics}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{What spatial cross-validation estimates: dependence pathways and
+the error rates of transfer decisions}
+
+\author[cbrn]{Jin Yoo\fnref{eq}}
+\author[cbrn]{Doo-Hee Lee\fnref{eq}}
+\author[snu]{Jeongyun Kim}
+\author[knpa]{Janghyeon Cha}
+\author[cbrn]{Ku Kang\corref{cor}}
+\ead{bisu9082@gmail.com}
+
+\cortext[cor]{Corresponding author.}
+\fntext[eq]{These authors contributed equally to this work.}
+
+\affiliation[cbrn]{organization={CBRN Defense Research Institute, Korea Ministry of National Defense},
+  city={Seoul}, postcode={06796}, country={Republic of Korea}}
+\affiliation[snu]{organization={Department of Chemical and Biological Engineering, Seoul National University},
+  city={Seoul}, postcode={08826}, country={Republic of Korea}}
+\affiliation[knpa]{organization={Korean National Police Agency},
+  city={Seoul}, country={Republic of Korea}}
+
+\begin{abstract}
+A spatial holdout is a choice of estimand, not a degree of strictness: withholding a target location while retaining nearby, contemporaneous or grid-sharing sources asks whether a model interpolates within an observed network; removing those pathways asks whether it transfers beyond it. The two can return opposite verdicts on the same data. We develop a data-adaptive audit that removes these pathways in turn, each control set from the measured dependence structure, not from convention. On CAMS \pmten{} residual correction across 19 stations, three conventions each independently flip the verdict: setting the temporal guard from the measured autocorrelation scale ($+0.19$ at three days, $+0.08$ at ten) removes the gain at all radii, equal-count blocks correct a fold imbalance of 124 to 1.01, and an aggressive flat-line filter restores an apparent gain. Because an empirical null cannot separate suppression of a false claim from destruction of a real one, we also run a 32-scenario stochastic experiment with signal and each dependence pathway set by construction. Across 25-, 50- and 100-km buffers the full audit holds false-positive verdicts near 2--3\% on average, rising to 11--13\% in one corner where a common temporal component makes the station-level sign test anti-conservative. Specificity is bought with power: under the transparent corrector, coordinate-free models retain 35--37\% detection and coordinate-bearing models 22.5--27.8\%, a decline a gradient-boosted tree does not reproduce although it matches the specificity. A validation design should be reported with the pathways it closes and the trade-off it incurs, not ranked by strictness.
+\end{abstract}
+
+\begin{keyword}
+Spatial cross-validation \sep Estimand \sep Operating characteristics \sep
+Spatial transfer \sep Residual correction \sep Spatiotemporal dependence
+\end{keyword}
+
+\end{frontmatter}
+
+\input{body}
+
+\section*{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or personal
+relationships that could have appeared to influence the work reported in this paper.
+
+\section*{CRediT authorship contribution statement}
+\textbf{Jin Yoo:} Conceptualization, Methodology, Software, Formal analysis, Writing -- original
+draft. \textbf{Doo-Hee Lee:} Methodology, Software, Formal analysis, Validation, Writing --
+original draft. \textbf{Jeongyun Kim:} Data curation, Investigation, Writing -- review and
+editing. \textbf{Janghyeon Cha:} Investigation, Validation, Writing -- review and editing.
+\textbf{Ku Kang:} Conceptualization, Funding acquisition, Supervision, Writing -- review and
+editing. Jin Yoo and Doo-Hee Lee contributed equally to this work.
+
+\section*{Acknowledgements}
+We thank the OpenAQ initiative and the Copernicus Atmosphere Monitoring Service for open access
+to the data used in this study. This work was supported by the Ministry of National Defense of
+the Republic of Korea. The funder had no role in study design, data collection and analysis,
+decision to publish, or preparation of the manuscript.
+
+\section*{Use of generative AI and AI-assisted technologies}
+During the preparation of this work the authors used Claude (Anthropic) to assist with drafting
+and language editing of the manuscript text and with writing and debugging the analysis,
+simulation and figure-generation code. All measurements and model fields were obtained from the
+cited public archives; no data, numerical results or references were generated by AI. After
+using this tool the authors reviewed and edited the content as needed, verified every reported
+numerical value against the underlying artefacts, and take full responsibility for the content
+of the published article.
+
+\section*{Data availability}
+The aligned three-hourly observation--model records underlying every empirical value reported
+here are available in the public \texttt{serra\_camscast} repository,
+\url{https://github.com/bisu9082/serra_camscast}. The raw CAMS EAC4 fields are distributed by
+the Copernicus Atmosphere Data Store and are not redistributed. The repository does not ship a
+retrieval client; the exact request parameters needed to rebuild the aligned records from that
+archive --- dataset, variables, grid, time grid, unit conversion and the station-matching rule ---
+are documented in \texttt{data\_retrieval/RETRIEVAL.md}. Ground observations are from the OpenAQ
+open-data archive.
+
+\section*{Code availability}
+All code underlying this article is in the same public repository under the MIT licence:
+the empirical audit scripts and their result artefacts, the figure scripts, and the
+ground-truth stochastic experiment (\texttt{serra\_simulation\_v2.py}) together with its
+structural tests, its pre-declared configuration and the 25-, 50- and 100~km Monte Carlo
+outputs for both correctors. The version reported here is release \texttt{v1.1}, commit
+\texttt{[COMMIT HASH TO BE INSERTED AT SUBMISSION]}. In a fresh clone of that release,
+\texttt{smoke\_test.py} recovers the 20,818 matched three-hourly records and passes its
+integrity checks, the simulation structural tests pass, and \texttt{agg\_learner.py}
+reproduces the three-radius learner comparison reported in Supplementary Table~S43, including its direct paired tests, while \texttt{empirical\_learner\_paired.py} reproduces the paired learner comparison of the empirical audit. Every figure in the main text is
+regenerated from the deposited result artefacts by \texttt{make\_fig\_audit.py}
+(Figures~\ref{fig:guard} and \ref{fig:blocks}), \texttt{make\_fig5.py}
+(Figure~\ref{fig:checks}) and \texttt{make\_fig\_simulation.py}
+(Figures~\ref{fig:simladder} and \ref{fig:simradius}), each run with the figure directory
+emptied; the two supplementary figures are deposited as rendered images only.
+
+\bibliographystyle{elsarticle-harv}
+\bibliography{refs_serra}
+
+\end{document}

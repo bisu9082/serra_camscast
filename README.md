@@ -100,8 +100,9 @@ simulation/               the ground-truth stochastic experiment and its Monte C
 data_processed/           aligned three-hourly records (24 series), plus the two
                           quality-controlled copies the sensitivity needs (K=6, K=3)
 results/                  29 JSON artefacts, per-point predictions, audit outputs
-manuscript/               Springer Nature LaTeX sources, figures, figure scripts,
-                          and the superseded EMS version under archive_ems/
+manuscript/               Elsevier LaTeX sources (main_spst.tex), figures, the four figure
+                          scripts that regenerate them, and the superseded Springer and
+                          EMS versions
 requirements.txt          version ranges that will not disturb your environment
 requirements-frozen.txt   the exact versions the reported analysis ran on
 smoke_test.py             loads the data and re-checks the integrity invariants
@@ -176,6 +177,15 @@ Every numeric literal in the manuscript and supplement is extracted with its sen
 against the artefacts by `code/number_audit.py`. About 95% match an artefact value automatically; the
 remaining two dozen are station identifiers, publication years, page numbers, sentinel codes and
 fixed hyperparameters, listed with their context in `results/number_audit_unmatched.csv`.
+
+Every figure in the main text regenerates from the deposited artefacts. With `manuscript/figures/`
+emptied, `make_fig_audit.py` writes `Empirical_Guard.png` and `Empirical_Blocks.png`,
+`make_fig5.py` writes `Empirical_Checks.png`, and `make_fig_simulation.py` writes
+`Simulation_Ladder.png` and `Simulation_Radius.png` from the run summaries in
+`simulation/results/`. Each figure is authored at its final placement width, so the printed
+lettering is the authored point size and `\includegraphics` applies no reduction; do not add
+`bbox_inches="tight"` to the savefig calls. The two supplementary figures are deposited as
+rendered images only.
 
 Three further checks ship with the package because they are how the reported numbers were verified:
 `code/xref_audit.py` rebuilds the float numbering from source and checks every hard-coded "Table S"

@@ -1,10 +1,10 @@
 """Graphical abstract for Environmental Modelling & Software.
-import os as _os
-_HERE = _os.path.dirname(_os.path.abspath(__file__))
-_ROOT = _os.path.dirname(_HERE)
 Spec: >= 531 x 1328 px (h x w), readable at 5 x 13 cm. Rendered at 1062 x 2656 px.
 Same two-hue validated palette as Figure 3; every number is a verified value.
 """
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_ROOT = _os.path.dirname(_HERE)
 import json
 import numpy as np
 import matplotlib
