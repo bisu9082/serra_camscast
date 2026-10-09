@@ -100,7 +100,7 @@ the empirical audit scripts and their result artefacts, the figure scripts, and 
 ground-truth stochastic experiment (\texttt{serra\_simulation\_v2.py}) together with its
 structural tests, its pre-declared configuration and the 25-, 50- and 100~km Monte Carlo
 outputs for both correctors. The version reported here is release \texttt{v1.1}, commit
-\texttt{[COMMIT HASH TO BE INSERTED AT SUBMISSION]}. In a fresh clone of that release,
+\texttt{2c22d1fdcadf839bf43263634c744f5e7e0489a9}. In a fresh clone of that release,
 \texttt{smoke\_test.py} recovers the 20,818 matched three-hourly records and passes its
 integrity checks, the simulation structural tests pass, and \texttt{agg\_learner.py}
 reproduces the three-radius learner comparison reported in Supplementary Table~S43, including its direct paired tests, while \texttt{empirical\_learner\_paired.py} reproduces the paired learner comparison of the empirical audit. Every figure in the main text is
@@ -108,7 +108,7 @@ regenerated from the deposited result artefacts by \texttt{make\_fig\_audit.py}
 (Figures~\ref{fig:guard} and \ref{fig:blocks}), \texttt{make\_fig5.py}
 (Figure~\ref{fig:checks}) and \texttt{make\_fig\_simulation.py}
 (Figures~\ref{fig:simladder} and \ref{fig:simradius}), each run with the figure directory
-emptied; the two supplementary figures are deposited as rendered images only.
+emptied; the two supplementary figures are deposited as rendered images only. \texttt{paired\_effect\_sizes.py} recomputes the paired effect sizes of the coordinate contrast from the deposited per-station deltas.
 
 \bibliographystyle{elsarticle-harv}
 \bibliography{refs_serra}

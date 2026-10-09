@@ -1,0 +1,60 @@
+{
+ "contrast": "coordinate-free minus coordinate-bearing",
+ "control": "full spatial, temporal and grid-cell",
+ "bootstrap_replicates": 10000,
+ "seed": 0,
+ "by_radius": [
+  {
+   "radius_km": 0,
+   "n": 19,
+   "median_paired_diff": 0.0108,
+   "d_z": 0.036,
+   "d_z_ci": [
+    -0.43,
+    0.544
+   ],
+   "rank_biserial_r": 0.095,
+   "n_favouring_coordfree": 11,
+   "wilcoxon_p": 0.73809
+  },
+  {
+   "radius_km": 25,
+   "n": 19,
+   "median_paired_diff": 0.0902,
+   "d_z": 0.174,
+   "d_z_ci": [
+    -0.261,
+    0.888
+   ],
+   "rank_biserial_r": 0.421,
+   "n_favouring_coordfree": 15,
+   "wilcoxon_p": 0.11338
+  },
+  {
+   "radius_km": 50,
+   "n": 19,
+   "median_paired_diff": 0.0777,
+   "d_z": 0.29,
+   "d_z_ci": [
+    -0.153,
+    0.794
+   ],
+   "rank_biserial_r": 0.442,
+   "n_favouring_coordfree": 14,
+   "wilcoxon_p": 0.09551
+  },
+  {
+   "radius_km": 100,
+   "n": 19,
+   "median_paired_diff": 0.0303,
+   "d_z": 0.459,
+   "d_z_ci": [
+    0.025,
+    0.981
+   ],
+   "rank_biserial_r": 0.547,
+   "n_favouring_coordfree": 13,
+   "wilcoxon_p": 0.03607
+  }
+ ]
+}
