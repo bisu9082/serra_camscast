@@ -19,7 +19,9 @@ REPO = os.path.dirname(HERE)
 ROOT = os.environ.get("CAMSCAST_TEX", os.path.join(REPO, "manuscript"))
 OUT = os.environ.get("CAMSCAST_OUT", os.path.join(REPO, "results", "xref_audit.csv"))
 
-FLOAT = re.compile(r"\\begin\{(table|figure)\}.*?\\end\{\1\}", re.S)
+# starred floats (figure*, table*) span both columns in a two-column class and are numbered
+# in the same sequence; matching only the unstarred form silently reports zero floats
+FLOAT = re.compile(r"\\begin\{(table|figure)(\*?)\}.*?\\end\{\1\2\}", re.S)
 BOLDCAP = re.compile(r"\\caption\{\s*\\textbf\{(.+?)\}", re.S)
 ANYCAP = re.compile(r"\\caption\{(.{0,120})", re.S)
 
