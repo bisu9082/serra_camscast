@@ -13,6 +13,7 @@ identity repeated by marker and direct label rather than carried by colour alone
 """
 import os as _os
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
+OUTDIR = _os.environ.get("CAMSCAST_FIGDIR", _os.path.join(_HERE, "figures"))
 _ROOT = _os.path.dirname(_HERE)
 import json, os
 import numpy as np
@@ -22,7 +23,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 RUN = os.environ.get("CAMSCAST_RUN", _ROOT + "/results")
-OUTPNG = os.environ.get("CAMSCAST_FIG", _HERE + "/figures/Empirical_Checks.png")
+OUTPNG = os.environ.get("CAMSCAST_FIG", _os.path.join(OUTDIR, "Empirical_Checks.png"))
 
 WITH, FREE = "#C94F4A", "#2E8F94"
 INK, MUTED, GRID = "#2F2A24", "#6B655C", "#DCD7CE"
@@ -161,7 +162,7 @@ for sp in ("top", "right"):
     axc.spines[sp].set_visible(False)
 tag(axc, "c")
 
-fig.savefig(OUTPNG, dpi=600)   # no tight bbox: keeps the authored width exact
+fig.savefig(OUTPNG, dpi=800)   # no tight bbox: keeps the authored width exact
 print("saved", os.path.basename(OUTPNG))
 if PL:
     print("panel b:", [(f"R{r}", round(o, 4), round(p, 3), n)

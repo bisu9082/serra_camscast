@@ -9,6 +9,7 @@ Identity is never colour-alone: line style, marker shape and direct labels repea
 """
 import os as _os
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
+OUTDIR = _os.environ.get("CAMSCAST_FIGDIR", _os.path.join(_HERE, "figures"))
 _ROOT = _os.path.dirname(_HERE)
 import json
 import numpy as np, pandas as pd
@@ -210,8 +211,8 @@ axd.set_title("Coordinates are neutral while neighbours remain, costly as the bu
 for sp in ("top", "right"): axd.spines[sp].set_visible(False)
 tag(axd, "b", dx=-0.13)
 
-figA.savefig(_HERE + "/figures/Empirical_Guard.png", dpi=600)
-figB.savefig(_HERE + "/figures/Empirical_Blocks.png", dpi=600)
+figA.savefig(_os.path.join(OUTDIR, "Empirical_Guard.png"), dpi=800)
+figB.savefig(_os.path.join(OUTDIR, "Empirical_Blocks.png"), dpi=800)
 # no tight bbox: bbox_inches="tight" would change the saved width and reintroduce down-scaling
 print("saved figures/Empirical_Guard.png and figures/Empirical_Blocks.png")
 print("panel b guard10:", {k: [round(V7[f"buffer_time_cell_{k}_R{r}"]["delta_median"],3) for r in R] for k in ("full","coordfree")})

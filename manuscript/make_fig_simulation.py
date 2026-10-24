@@ -124,7 +124,7 @@ tag(ax1, "a")
 ax2 = fig.add_subplot(G[0, 1])
 panel(ax2, xs, det, "Detection of a genuine\ntransferable signal", "Verdict rate (%)", LADDER_LAB)
 tag(ax2, "b")
-fig.savefig(_os.path.join(OUTDIR, "Simulation_Ladder.png"), dpi=600)
+fig.savefig(_os.path.join(OUTDIR, "Simulation_Ladder.png"), dpi=800)
 
 # ------------------------------------------------------------------ full audit across radius
 byR = {R: load(R) for R in RADII}
@@ -147,7 +147,7 @@ ax4 = fig2.add_subplot(G2[0, 1])
 panel(ax4, xs2, detR, "Full-audit detection\n(genuine signal present)", "Verdict rate (%)",
       [str(R) for R in RADII], xlabel="Distance buffer $R$ (km)")
 tag(ax4, "b")
-fig2.savefig(_os.path.join(OUTDIR, "Simulation_Radius.png"), dpi=600)
+fig2.savefig(_os.path.join(OUTDIR, "Simulation_Radius.png"), dpi=800)
 
 # ------------------------------------------------------------------ echo the plotted values
 print("ladder at R=50 km, false-positive verdict rate (%)")

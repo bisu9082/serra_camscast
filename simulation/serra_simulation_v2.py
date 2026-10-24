@@ -53,6 +53,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import zlib
 import math
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -60,6 +61,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+N_RND = 50   # random partitions per realization for the unit-count control
 from sklearn.linear_model import Ridge
 from sklearn.ensemble import HistGradientBoostingRegressor
 
@@ -121,12 +124,31 @@ def temporal_component(n, strong, rng):
     return z
 
 
-def spatial_component(x, y, strong, rng, range_km=70.0):
+def spatial_component(x, y, strong, rng, range_km=70.0, cov_family="exponential"):
+    """Standardized draw from a zero-mean Gaussian field at the station locations.
+
+    The primary specification is an exponential covariance at a 70 km range, which sits inside the
+    25-100 km band over which the observed residual field is spatially structured. That range is
+    assumed rather than estimated, and a single covariance family does not establish that the
+    reported operating characteristics survive a different one, so both are exposed here as
+    sensitivity levers. The exponential branch at the default range reproduces the primary run
+    bit-for-bit: it draws from the same covariance and consumes the same number of random variates.
+
+      exponential   exp(-d/rho)                       rough field, no mean-square derivative
+      matern32      (1 + s) exp(-s), s = sqrt(3) d/rho  once mean-square differentiable
+    """
     n = len(x)
     if not strong:
         return np.zeros(n)
     d = pairdist(x, y)
-    cov = np.exp(-d / range_km) + np.eye(n) * 1e-8
+    if cov_family == "exponential":
+        cov = np.exp(-d / range_km)
+    elif cov_family == "matern32":
+        s = np.sqrt(3.0) * d / range_km
+        cov = (1.0 + s) * np.exp(-s)
+    else:
+        raise ValueError(f"unknown covariance family: {cov_family}")
+    cov = cov + np.eye(n) * 1e-8
     z = rng.multivariate_normal(np.zeros(n), cov)
     z -= z.mean()
     z /= z.std(ddof=1) + 1e-12
@@ -154,7 +176,7 @@ def observed_cams_grid_ids(ids):
 
 
 def simulate_field(seed, beta, spatial_on, temporal_on, grid_on,
-                   geometry, n_days=120, sigma_noise=0.75):
+                   geometry, n_days=120, sigma_noise=0.75, spatial_range_km=70.0, cov_family="exponential"):
     rng = np.random.default_rng(seed)
     scale = 1.0 if geometry == "dense" else 2.0
     ids, x, y = local_xy_km(scale)
@@ -192,7 +214,7 @@ def simulate_field(seed, beta, spatial_on, temporal_on, grid_on,
     f = (f - f.mean()) / (f.std(ddof=1) + 1e-12)
     transferable = beta * f
 
-    s = spatial_component(x, y, spatial_on, rng)[:, None]
+    s = spatial_component(x, y, spatial_on, rng, spatial_range_km, cov_family)[:, None]
     if not spatial_on:
         s[:] = 0.0
 
@@ -357,25 +379,34 @@ def fit_one_target(dat, X, target, design, test_start, test_len,
     test_rows = target_rows[lo:hi]
     pred = model.predict(X[test_rows])
 
-    raw_err = np.mean(np.abs(dat["residual"][target, lo:hi]))
-    corrected_err = np.mean(np.abs(dat["residual"][target, lo:hi] - pred))
+    raw_abs = np.abs(dat["residual"][target, lo:hi])
+    corr_abs = np.abs(dat["residual"][target, lo:hi] - pred)
+    raw_err = np.mean(raw_abs)
+    corrected_err = np.mean(corr_abs)
     delta = float(np.log(raw_err / corrected_err))
-    return delta, guard, len(src)
+    # The per-timestep errors are returned alongside the window-level delta so that a
+    # verdict can also be read at a unit defined over time. The scalar above is computed
+    # exactly as before, so every station- and cell-level result is unchanged.
+    return delta, guard, len(src), raw_abs, corr_abs
 
 
 def evaluate(dat, spec, design, test_start, test_len,
              radius_km=50.0, ridge_alpha=2.0, learner="ridge"):
     X = design_matrix(dat, spec, learner)
-    deltas, guards, nsrc = [], [], []
+    deltas, guards, nsrc, kept = [], [], [], []
+    raw_abs_rows, corr_abs_rows = [], []
     for target in range(len(dat["ids"])):
         z = fit_one_target(dat, X, target, design, test_start, test_len,
                            radius_km, ridge_alpha, learner)
         if z is None:
             continue
-        d, g, ns = z
+        d, g, ns, ra, ca = z
+        raw_abs_rows.append(ra)
+        corr_abs_rows.append(ca)
         deltas.append(d)
         guards.append(g)
         nsrc.append(ns)
+        kept.append(target)
 
     d = np.asarray(deltas, float)
     if len(d) < 5:
@@ -383,12 +414,119 @@ def evaluate(dat, spec, design, test_start, test_len,
             "n_targets": len(d), "median_delta": np.nan, "mean_delta": np.nan,
             "win_rate": np.nan, "sign_p": np.nan, "positive_verdict": False,
             "guard_days_median": np.nan, "n_src_median": np.nan,
+            "n_cells": 0, "cell_median_delta": np.nan, "cell_wins": 0,
+            "cell_sign_p": np.nan, "cell_positive_verdict": False,
+            "n_episodes": 0, "episode_len_steps": np.nan,
+            "ep_median_delta": np.nan, "ep_wins": 0, "ep_sign_p": np.nan,
+            "ep_positive_verdict": False, "eprnd_sign_p": np.nan,
+            "eprnd_positive_verdict": False, "eprnd_frac": np.nan,
         }
 
     wins = int((d > 0).sum())
     sign_p = float(stats.binomtest(wins, len(d), 0.5,
                                    alternative="greater").pvalue)
     median_delta = float(np.median(d))
+    # Coarse inference unit. The station-level sign test treats the targets as
+    # responding independently; when the residual carries a component common to the
+    # whole network that assumption fails and the test is anti-conservative. The
+    # network's own structure suggests a coarser unit: stations sharing a mechanistic
+    # grid cell carry an identical covariate series, so the cells, not the stations,
+    # are the units that move independently. The cell verdict takes the median delta
+    # within each occupied cell and applies the same one-sided exact sign test across
+    # cells. No random numbers are drawn here, so the station-level results are
+    # bit-identical to the run that did not compute this.
+    cell_of = np.asarray([dat["cell"][t] for t in kept])
+    uniq = np.unique(cell_of)
+    cell_med = np.array([float(np.median(d[cell_of == c])) for c in uniq])
+    n_cells = int(len(cell_med))
+    cell_wins = int((cell_med > 0).sum())
+    cell_sign_p = float(stats.binomtest(cell_wins, n_cells, 0.5,
+                                        alternative="greater").pvalue)
+    cell_median_delta = float(np.median(cell_med))
+    # Control for the number of units. The cell rule counts nine units where the station rule
+    # counts nineteen, so part of any power loss could be arithmetic rather than structural.
+    # This control partitions the same targets into the same number of groups at random,
+    # ignoring geography, and applies the identical group-level sign test. A geographic unit
+    # that only reproduces this control is buying nothing that fewer units would not buy.
+    # A single random partition is itself a draw, so the control is repeated: the rate reported
+    # as "what an arbitrary coarsening of this size does" is the mean over N_RND partitions, and
+    # the first partition is kept as one unbiased draw for the paired McNemar comparison.
+    # Deterministic seed: Python's hash() is salted per process, so it cannot be used here
+    # without making the control irreproducible between runs.
+    _key = f"{int(test_start)}|{spec}|{design}|{n_cells}".encode()
+    rng_ctl = np.random.default_rng(zlib.crc32(_key))
+    rnd_flags = []
+    for b in range(N_RND):
+        perm = rng_ctl.permutation(len(d))
+        rmed = np.array([float(np.median(d[g])) for g in np.array_split(perm, n_cells) if len(g)])
+        rw = int((rmed > 0).sum())
+        rp = float(stats.binomtest(rw, len(rmed), 0.5, alternative="greater").pvalue)
+        rnd_flags.append(bool(float(np.median(rmed)) > 0 and rp < 0.05))
+        if b == 0:
+            rnd_wins, rnd_sign_p, rnd_median_delta = rw, rp, float(np.median(rmed))
+    rnd_frac = float(np.mean(rnd_flags))
+
+    # ----------------------------------------------------------------- temporal unit
+    # The spatial coarsening above answers what a coarser unit buys when the unit is
+    # geographic. The unit could equally be defined over time: the evaluation window is
+    # cut into contiguous episodes and the verdict read across episodes. The episode
+    # count is held at the number of occupied cells so that the geographic rule, the
+    # random spatial grouping and the episode rule all count the same number of units,
+    # and any difference between them is attributable to what the groups contain rather
+    # than to how many there are.
+    #
+    # The delta of a (target, episode) pair is formed from the same per-timestep errors
+    # the window-level delta is formed from, so the two readings differ only in where
+    # the averaging stops. Episodes are aggregated across targets by the median, exactly
+    # as cells aggregate stations.
+    #
+    # Its own control holds the episode count fixed and destroys the temporal
+    # contiguity: the same timesteps are scattered at random into the same number of
+    # groups. A contiguous episode that only matches this control is buying nothing that
+    # an arbitrary partition of that size would not buy.
+    RA = np.vstack(raw_abs_rows)
+    CA = np.vstack(corr_abs_rows)
+    n_steps = RA.shape[1]
+    n_ep = min(n_cells, n_steps)
+    episode_len = n_steps / n_ep if n_ep else np.nan
+
+    def _unit_deltas(groups):
+        """Median across targets of the per-target delta within each group of timesteps."""
+        out = []
+        for g in groups:
+            if len(g) == 0:
+                continue
+            r = RA[:, g].mean(axis=1)
+            c = CA[:, g].mean(axis=1)
+            ok = (r > 0) & (c > 0)
+            if not ok.any():
+                continue
+            out.append(float(np.median(np.log(r[ok] / c[ok]))))
+        return np.asarray(out, float)
+
+    def _verdict(vals):
+        if len(vals) < 3:
+            return np.nan, 0, np.nan, False
+        w = int((vals > 0).sum())
+        p = float(stats.binomtest(w, len(vals), 0.5, alternative="greater").pvalue)
+        m = float(np.median(vals))
+        return m, w, p, bool(m > 0 and p < 0.05)
+
+    ep_med = _unit_deltas(np.array_split(np.arange(n_steps), n_ep))
+    ep_median_delta, ep_wins, ep_sign_p, ep_verdict = _verdict(ep_med)
+
+    _tkey = f"ep|{int(test_start)}|{spec}|{design}|{n_ep}".encode()
+    rng_ep = np.random.default_rng(zlib.crc32(_tkey))
+    ep_flags = []
+    for b in range(N_RND):
+        perm = rng_ep.permutation(n_steps)
+        vals = _unit_deltas(np.array_split(perm, n_ep))
+        _m, _w, _p, _v = _verdict(vals)
+        ep_flags.append(_v)
+        if b == 0:
+            eprnd_sign_p, eprnd_verdict = _p, _v
+    eprnd_frac = float(np.mean(ep_flags))
+
     return {
         "n_targets": len(d),
         "median_delta": median_delta,
@@ -398,6 +536,24 @@ def evaluate(dat, spec, design, test_start, test_len,
         "positive_verdict": bool(median_delta > 0 and sign_p < 0.05),
         "guard_days_median": float(np.median(guards)) if guards else 0.0,
         "n_src_median": float(np.median(nsrc)),
+        "n_cells": n_cells,
+        "cell_median_delta": cell_median_delta,
+        "cell_wins": cell_wins,
+        "cell_sign_p": cell_sign_p,
+        "cell_positive_verdict": bool(cell_median_delta > 0 and cell_sign_p < 0.05),
+        "rnd_wins": rnd_wins,
+        "rnd_sign_p": rnd_sign_p,
+        "rnd_positive_verdict": bool(rnd_median_delta > 0 and rnd_sign_p < 0.05),
+        "rnd_frac": rnd_frac,
+        "n_episodes": n_ep,
+        "episode_len_steps": float(episode_len),
+        "ep_median_delta": ep_median_delta,
+        "ep_wins": ep_wins,
+        "ep_sign_p": ep_sign_p,
+        "ep_positive_verdict": ep_verdict,
+        "eprnd_sign_p": eprnd_sign_p,
+        "eprnd_positive_verdict": eprnd_verdict,
+        "eprnd_frac": eprnd_frac,
     }
 
 
@@ -427,6 +583,8 @@ def run_task(task):
         geometry=scenario["geometry"],
         n_days=cfg["n_days"],
         sigma_noise=cfg["sigma_noise"],
+        spatial_range_km=cfg.get("spatial_range_km", 70.0),
+        cov_family=cfg.get("cov_family", "exponential"),
     )
 
     rng = np.random.default_rng(seed + 777)
@@ -460,6 +618,8 @@ def run_task(task):
                 "learner": cfg.get("learner", "ridge"),
                 "test_start": test_start,
                 "test_len_days": test_len,
+                "spatial_range_km": cfg.get("spatial_range_km", 70.0),
+                "cov_family": cfg.get("cov_family", "exponential"),
                 **out,
             }
             rows.append(row)
@@ -480,6 +640,16 @@ def summarize(df):
               median_win_rate=("win_rate", "median"),
               median_guard_days=("guard_days_median", "median"),
               median_sources=("n_src_median", "median"),
+              cell_verdict_rate=("cell_positive_verdict", "mean"),
+              rnd_verdict_rate=("rnd_positive_verdict", "mean"),
+              rnd_verdict_rate_mean=("rnd_frac", "mean"),
+              median_cell_wins=("cell_wins", "median"),
+              median_n_cells=("n_cells", "median"),
+              ep_verdict_rate=("ep_positive_verdict", "mean"),
+              eprnd_verdict_rate=("eprnd_positive_verdict", "mean"),
+              eprnd_verdict_rate_mean=("eprnd_frac", "mean"),
+              median_n_episodes=("n_episodes", "median"),
+              median_episode_len=("episode_len_steps", "median"),
           )
           .reset_index()
     )
@@ -505,6 +675,11 @@ def main():
     ap.add_argument("--test-len-days", type=int, default=20)
     ap.add_argument("--test-margin-days", type=int, default=20)
     ap.add_argument("--ridge-alpha", type=float, default=2.0)
+    ap.add_argument("--spatial-range-km", type=float, default=70.0,
+                    help="range of the spatial covariance; primary run uses 70 km")
+    ap.add_argument("--cov-family", choices=["exponential", "matern32"],
+                    default="exponential",
+                    help="covariance family of the spatial component")
     ap.add_argument("--designs", default="",
                     help="comma-separated subset of the validation ladder to run "
                          "(station,space,space_time,full). Empty = all four.")
@@ -532,7 +707,8 @@ def main():
         "sigma_noise": 0.75,
         "guard_rule": "first source-network median per-station |ACF| <= 0.10; max 14 d",
         "grid_assignment": "observed audit_v7 rule: round(lat/0.75), round(lon/0.75); 9 cells",
-        "spatial_range_km": 70.0,
+        "spatial_range_km": args.spatial_range_km,
+        "cov_family": args.cov_family,
         "temporal_strong_theoretical_acf": {
             "1_day": 0.35, "3_days": 0.19, "10_days": 0.08
         },

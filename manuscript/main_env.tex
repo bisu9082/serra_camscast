@@ -1,0 +1,42 @@
+%% Environmetrics (Wiley) submission — guideline-compliant layout
+%% 12pt, double spaced, <=26 lines/page, >=1in margins, numbered pages
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage[a4paper,margin=1in,textheight=8.7in]{geometry}  % caps the page at 26 double-spaced 12pt lines
+\usepackage{setspace}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage[round,authoryear]{natbib}
+\usepackage{url}
+\usepackage{lineno}
+\bibliographystyle{apalike}
+\newcommand{\pmten}{PM$_{10}$}
+\newcommand{\pmtf}{PM$_{2.5}$}
+\newcommand{\ugm}{\si{\micro\gram\per\cubic\metre}}
+\begin{document}
+\doublespacing
+\title{\bf A dependence-pathway audit for spatial transfer: error rates of the
+design and of its inference unit}
+\author{}
+\date{}
+\maketitle
+\thispagestyle{empty}
+\begin{center}
+\emph{Running title}: Error rates of a spatial-transfer audit and its inference unit
+\end{center}
+\begin{abstract}
+We propose a dependence-pathway audit for the claim that a model fitted at monitored locations transfers to an unmonitored one. The audit removes the pathways connecting a held-out target to its training data --- spatial proximity, temporal co-location and shared grid support --- in turn, each control set from the measured dependence structure. On CAMS \pmten{} residual correction across 19 stations, three conventions flip the verdict. Because observed data cannot separate a design that suppresses a false claim from one that destroys a real signal, we measure the audit in a 32-scenario experiment with signal and pathways set by construction. Across 25-, 50- and 100-km buffers it holds false-positive verdicts near 2--3\%, rising to 11--13\% where a component common to the network in time makes the station-level sign test anti-conservative. A validation design also chooses the unit its verdict is counted over. Coarsening to grid cells does not repair that corner: an arbitrary grouping of the same size matches it. Cutting the units along time does repair it, at a smaller cost in detection. The unit should be cut along the dependence that threatens the test, not the one that is easiest to see.
+\end{abstract}
+\par\medskip\noindent\textbf{Keywords:} spatial cross-validation; spatial transferability; modifiable areal unit problem; validation design; geospatial machine learning
+\clearpage
+\input{body}
+\clearpage
+{\singlespacing
+\bibliography{refs_serra}
+}
+\input{figlegends}
+\end{document}
