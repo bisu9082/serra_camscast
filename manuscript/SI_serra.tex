@@ -26,7 +26,7 @@
 {\large\bfseries Supplementary Material}\\[6pt]
 {\itshape A data-adaptive audit of spatial transfer in environmental
 residual-correction models}\\[4pt]
-Author details are given on the title page.\\
+Jin Yoo, Doo-Hee Lee, Jeongyun Kim, Janghyeon Cha, Ku Kang\\
 \end{center}
 \vspace{1em}
 
@@ -283,7 +283,7 @@ Cell lat & Cell lon & Monitors & Obs mean & Within-cell range & Within-cell SD \
 
 
 \section{Reproducibility details}
-All stochastic steps use fixed, recorded seeds (0 unless stated): the gradient-boosting transfer (\texttt{HistGradientBoostingRegressor}, 300 iterations, learning rate 0.05, max depth 6) and every bootstrap within a given table-generation script; confidence intervals in different tables therefore come from independently seeded bootstrap draws over the same data, which accounts for sub-tenth differences between tables reporting the same quantity. Where a robustness table was generated as an independent matched-table run, the supplement preserves the table-specific seed record and output so that small bootstrap-CI differences can be reproduced. Machine-readable processed tables, consistency checks and script entry points are in the public repository identified in the data availability statement on the title page.
+All stochastic steps use fixed, recorded seeds (0 unless stated): the gradient-boosting transfer (\texttt{HistGradientBoostingRegressor}, 300 iterations, learning rate 0.05, max depth 6) and every bootstrap within a given table-generation script; confidence intervals in different tables therefore come from independently seeded bootstrap draws over the same data, which accounts for sub-tenth differences between tables reporting the same quantity. Where a robustness table was generated as an independent matched-table run, the supplement preserves the table-specific seed record and output so that small bootstrap-CI differences can be reproduced. Machine-readable processed tables, consistency checks and script entry points are in the public repository at \texttt{github.com/bisu9082/serra\_camscast} (release v1.2).
 
 \begin{table}[htbp]\centering\footnotesize
 \caption{\textbf{Stability of the cold-start transfer under source-set resampling.} The estimates in Tables~\ref{si:t6}, \ref{si:t7} and \ref{si:t10} come from a deterministic fit (internal early stopping disabled, \texttt{random\_state}~$=0$), which reproduces bit-for-bit under any seed; a seed-based stability check is therefore undefined for the estimator actually used. We instead resample the quantity that is actually stochastic, the set of source stations, drawing 100 bootstrap source sets per target and refitting (an earlier version used 12; the ratio below is smaller with the larger sample and we report the larger sample). The coordinate-bearing specification is $3.5$ times the more variable at zero buffer and $4.6$ times at 100~km, in the same direction as every other diagnostic in the audit: which stations happen to be available matters far more to the coordinate-bearing fit than to the coordinate-free one. Entries are the pooled gain over raw CAMS, mean $\pm$ standard deviation across bootstrap replicates, with the 2.5th--97.5th percentile interval.}
